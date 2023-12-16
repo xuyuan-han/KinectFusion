@@ -1,32 +1,92 @@
-# Prerequisites
-*.d
+# IDE
+.idea
+.vscode
 
-# Compiled Object files
-*.slo
-*.lo
+# C++ object / ELF files
 *.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
 *.a
-*.lib
+*.so
+*.so.*
 
-# Executables
+# python bytecode
+*.pyc
+*.pyo
+__pycache__
+*.pyd
+*.egg-info
+*.egg
+
+
+# MSVC files
+*.pdb
+*.dll
 *.exe
+
+# workflow
+*.orig
+/TODO.org
+
+# build system
+/bin
+/.bin
+/build
+/build-*
+/deps
+/.ccls-cache
+/.cache
+/cmake-build-*
+/out
+/output
+/install
+/log
+
+# CMake in-source builds
+CMakeLists.txt.user
+/DartConfiguration.tcl
+/Testing
+CTestTestfile.cmake
+CMakeFiles
+cmake_install.cmake
+CMakeCache.txt
+Makefile
+/compile_commands.json
+
+# debugging
+callgrind.out.*
+perf.data*
+.gdb_history
+
+# code search
+/.ignore
+/.globalrc
+/GPATH
+/GRTAGS
+/GTAGS
+
+# Packages
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# LaTeX
+*.thm
+*.synctex.gz
+*.ps
 *.out
-*.app
+*.dvi
+*.blg
+*.bbl
+*.aux
+*.log
+
+# Virtual Environments
+/.venv/
+/venv
+
+# macOS
+.DS_Store
