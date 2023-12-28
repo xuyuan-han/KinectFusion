@@ -9,3 +9,36 @@ Our project not only seeks to reimplement the original system but also aims to i
 We will implement KinectFusion using C++ and CUDA (specifically CUDA 11) to meet the real-time computing requirements. Essential libraries such as OpenCV for image processing and Eigen for efficient matrix and vector operations will also be utilized.
 
 Regarding the dataset, we will use the TUM RGB-D Dataset, to validate our reconstruction implementation. Additionally, we aim to reconstruct a room in our apartment in real-time using the previously mentioned iPhone LiDAR data stream. Alternatively, we may use a Kinect v1 sensor if one becomes available through the course.
+
+## OpenCV Installation
+
+```Bash
+cd ~/Libs/opencv/3.4.16/build &&
+cmake \
+-D CMAKE_BUILD_TYPE=RELEASE \
+-D CMAKE_INSTALL_PREFIX=~/Libs/opencv/3.4.16/install \
+-D OPENCV_EXTRA_MODULES_PATH=~/Libs/opencv/contrib-3.4.16/modules \
+-D WITH_CUDA=ON \
+-D BUILD_DOCS=ON \
+-D BUILD_EXAMPLES=OFF \
+-D BUILD_TESTS=OFF \
+-D BUILD_PERF_TESTS=OFF \
+.. &&
+make -j16 &&
+# cd ./doc/ &&
+# make -j16 doxygen &&
+make install &&
+cd ~/Libs/opencv/4.8.0/build &&
+cmake \
+-D CMAKE_BUILD_TYPE=RELEASE \
+-D CMAKE_INSTALL_PREFIX=~/Libs/opencv/4.8.0/install \
+-D OPENCV_EXTRA_MODULES_PATH=~/Libs/opencv/contrib-4.8.0/modules \
+-D WITH_CUDA=ON \
+-D BUILD_DOCS=ON \
+-D BUILD_EXAMPLES=OFF \
+-D BUILD_TESTS=OFF \
+-D BUILD_PERF_TESTS=OFF \
+.. &&
+make -j16 &&
+make install
+```
