@@ -8,7 +8,7 @@
 #include <cstring>
 #include <fstream>
 
-//typedef unsigned char BYTE;
+typedef unsigned char BYTE;
 typedef unsigned int uint;
 using Vector4uc = Eigen::Matrix<unsigned char, 4, 1>;
 
@@ -357,6 +357,27 @@ public:
 		return x * dy * dz + y * dz + z;
 	}
 
+
+
+};
+
+struct Frame {
+	const CameraParameters camera_parameters;
+	const BYTE* color_map;
+	const float* depth_map;
+	const uint* class_map;
+	
+	std::vector<Eigen::Vector3f> verices;
+	std::vector<Eigen::Vector3f> normals;
+	Eigen::Matrix4f extrinsic;
+	Eigen::Matrix4f depth_extrinsics;
+
+Frame(const CameraParameters camera_parameters, const BYTE* color_map, const float* depth_map, const uint* class_map, Eigen::Matrix4f extrinsic, Eigen::Matrix4f depth_extrinsics) :
+		camera_parameters(camera_parameters), color_map(color_map), depth_map(depth_map), class_map(class_map), extrinsic(extrinsic), depth_extrinsics(depth_extrinsics)
+	{
+	}
+
+Frame();
 
 
 };
