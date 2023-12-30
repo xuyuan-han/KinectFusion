@@ -77,26 +77,55 @@ void estimate_step(const Eigen::Matrix3f& rotation_current,
     const int cols = vertex_map_current.cols;
     const int rows = vertex_map_current.rows;
     Eigen::Matrix<float, 3, 1, Eigen::DontAlign> n, d, s;
+    bool correspondence_found = false;
     for (int x = 0; x < cols; ++x) {
         for (int y = 0; y < rows; ++y) {
             Eigen::Matrix<float, 3, 1, Eigen::DontAlign> normal_current;
-            normal_current(0) = normal_map_current.at<cv::Vec3f>(y, x)[0];
-            if (!isnan(normal_current(0))) {
+            normal_current.x() = normal_map_current.at<cv::Vec3f>(y, x)[0];
+            if (!isnan(normal_current.x())) {
                 // Get current point
                 Eigen::Matrix<float, 3, 1, Eigen::DontAlign> vertex_current;
-                vertex_current(0) = vertex_map_current.at<cv::Vec3f>(y, x)[0];
-                vertex_current(1) = vertex_map_current.at<cv::Vec3f>(y, x)[1];
-                vertex_current(2) = vertex_map_current.at<cv::Vec3f>(y, x)[2];
+                vertex_current.x() = vertex_map_current.at<cv::Vec3f>(y, x)[0];
+                vertex_current.y() = vertex_map_current.at<cv::Vec3f>(y, x)[1];
+                vertex_current.z() = vertex_map_current.at<cv::Vec3f>(y, x)[2];
 
                 Eigen::Matrix<float, 3, 1, Eigen::DontAlign> vertex_current_global = rotation_current * vertex_current + translation_current;
 
                 Eigen::Matrix<float, 3, 1, Eigen::DontAlign> vertex_current_camera = rotation_previous_inv * (vertex_current_global - translation_previous);
 
                 Eigen::Vector2i point;
-                point(0) = static_cast<int>(roundf(vertex_current_camera(0) * cam_params.focal_x / vertex_current_camera(2) + cam_params.principal_x));
-                point(1) = static_cast<int>(roundf(vertex_current_camera(1) * cam_params.focal_y / vertex_current_camera(2) + cam_params.principal_y));
+                point.x() = static_cast<int>(roundf(vertex_current_camera.x() * cam_params.focal_x / vertex_current_camera.z() + cam_params.principal_x));
+                point.y() = static_cast<int>(roundf(vertex_current_camera.y() * cam_params.focal_y / vertex_current_camera.z() + cam_params.principal_y));
+
+                if (point.x() >= 0 && point.y() >= 0 && point.x() < cols && point.y() < rows && vertex_current_camera.z() >= 0){
+                    Eigen::Matrix<float, 3, 1, Eigen::DontAlign> normal_previous_global;
+                    normal_previous_global.x() = normal_map_previous.at<cv::Vec3f>(point.y(), point.x())[0];
+                    if (!isnan(normal_previous_global.x())){
+                        Eigen::Matrix<float, 3, 1, Eigen::DontAlign> vertex_previous_global;
+                        vertex_previous_global.x() = vertex_map_previous.at<cv::Vec3f>(point.y(), point.x())[0];
+                        vertex_previous_global.y() = vertex_map_previous.at<cv::Vec3f>(point.y(), point.x())[1];
+                        vertex_previous_global.z() = vertex_map_previous.at<cv::Vec3f>(point.y(), point.x())[2];
+                        float distance = (vertex_previous_global - vertex_current_global).norm();
+                        if (distance <= distance_threshold){
+                            normal_current.y() = normal_map_current.at<cv::Vec3f>(y, x)[1];
+                            normal_current.z() = normal_map_current.at<cv::Vec3f>(y, x)[2];
+                            Eigen::Matrix<float, 3, 1, Eigen::DontAlign> normal_current_global = rotation_current * normal_current;
+
+                            normal_previous_global.y() = normal_map_previous.at<cv::Vec3f>(point.y(), point.x())[1];
+                            normal_previous_global.z() = normal_map_previous.at<cv::Vec3f>(point.y(), point.x())[2];
+
+                            float angle = acosf(normal_previous_global.dot(normal_current_global));
+                            if (angle <= angle_threshold){
+                                n = normal_previous_global;
+                                d = vertex_previous_global;
+                                s = vertex_current_global;
+
+                                correspondence_found = true;
+                            }
+                        }
+                    }
+                }
             }
         }
-
     }
 }
