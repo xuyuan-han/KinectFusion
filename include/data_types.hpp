@@ -33,6 +33,15 @@ struct CameraParameters {
                                     (principal_x + 0.5f) * scale_factor - 0.5f,
                                     (principal_y + 0.5f) * scale_factor - 0.5f };
     }
+
+	Eigen::Matrix3f getIntrinsicMatrix() const
+	{
+		Eigen::Matrix3f K;
+		K << focal_x, 0, principal_x,
+			0, focal_y, principal_y,
+			0, 0, 1;
+		return K;
+	}
 };
 
 struct FrameData {
@@ -356,6 +365,8 @@ public:
 	{
 		return x * dy * dz + y * dz + z;
 	}
+
+	
 
 
 
