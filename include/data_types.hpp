@@ -8,8 +8,7 @@
 #include <cstring>
 #include <fstream>
 
-typedef unsigned char BYTE;
-typedef unsigned int uint;
+
 using Vector4uc = Eigen::Matrix<unsigned char, 4, 1>;
 
 struct CameraParameters {
@@ -346,7 +345,7 @@ public:
 		return coord;
 	}
 
-
+	
 	//! Returns number of cells in x-dir.
 	inline uint getDimX() const { return dx; }
 
@@ -366,6 +365,12 @@ public:
 		return x * dy * dz + y * dz + z;
 	}
 
+	//Set voxel at (x,y,z) to value
+	inline void setVoxel(int x, int y, int z, Voxel value)
+	{
+		vol[getPosFromTuple(x, y, z)] = value;
+	}
+
 	// Get volume as a opencv matrix
 	cv::Mat getVolume() {
 		int sizes[3] = { dx, dy, dz };
@@ -378,7 +383,7 @@ public:
 			}
 		}
 	}
-
+	
 	// Get weight as a opencv matrix
 	cv::Mat getWeight() {
 			int sizes[3] = { dx, dy, dz };
@@ -390,13 +395,13 @@ public:
 					}
 				}
 			}
-		}
+		}  
 
 };
 
 struct Frame {
 	const CameraParameters camera_parameters;
-	const BYTE* color_map;
+	const unsigned char* color_map;
 	const float* depth_map;
 	const uint* class_map;
 
@@ -405,7 +410,7 @@ struct Frame {
 	Eigen::Matrix4f extrinsic;
 	Eigen::Matrix4f depth_extrinsics;
 
-	Frame(const CameraParameters camera_parameters, const BYTE* color_map, const float* depth_map, const uint* class_map, Eigen::Matrix4f extrinsic, Eigen::Matrix4f depth_extrinsics) :
+	Frame(const CameraParameters camera_parameters, const unsigned char* color_map, const float* depth_map, const uint* class_map, Eigen::Matrix4f extrinsic, Eigen::Matrix4f depth_extrinsics) :
 		camera_parameters(camera_parameters), color_map(color_map), depth_map(depth_map), class_map(class_map), extrinsic(extrinsic), depth_extrinsics(depth_extrinsics)
 	{
 	}
