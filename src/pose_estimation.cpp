@@ -33,7 +33,7 @@ bool pose_estimation(Eigen::Matrix4f& pose,
 
             // Solve equation to get alpha, beta and gamma
             double det = A.determinant();
-            if (fabs(det) < 100000 /*1e-15*/ || std::isnan(det))
+            if (fabs(det) < 1e-15 || std::isnan(det))
                 return false;
             Eigen::Matrix<float, 6, 1> result { A.fullPivLu().solve(b).cast<float>() };
             float alpha = result(0);
@@ -76,12 +76,17 @@ void estimate_step(const Eigen::Matrix3f& rotation_current,
 
     const int cols = vertex_map_current.cols;
     const int rows = vertex_map_current.rows;
-    Eigen::Matrix<float, 3, 1, Eigen::DontAlign> n, d, s;
-    bool correspondence_found = false;
+    A = Eigen::Matrix<double, 6, 6, Eigen::RowMajor>::Zero();
+    b = Eigen::Matrix<double, 6, 1>::Zero();
+
     for (int x = 0; x < cols; ++x) {
         for (int y = 0; y < rows; ++y) {
+            Eigen::Matrix<float, 3, 1, Eigen::DontAlign> n, d, s;
+            bool correspondence_found = false;
+
             Eigen::Matrix<float, 3, 1, Eigen::DontAlign> normal_current;
             normal_current.x() = normal_map_current.at<cv::Vec3f>(y, x)[0];
+
             if (!isnan(normal_current.x())) {
                 // Get current point
                 Eigen::Matrix<float, 3, 1, Eigen::DontAlign> vertex_current;
@@ -125,6 +130,28 @@ void estimate_step(const Eigen::Matrix3f& rotation_current,
                         }
                     }
                 }
+            }
+            if (correspondence_found){
+                Eigen::Vector<float, 6> vec6f;
+                vec6f.head<3>() = s.cross(n);
+                vec6f.tail<3>() = n;
+
+                //      | 0x0 0x1 0x2 0x3 0x4 0x5 |
+                //      | 1x0 1x1 1x2 1x3 1x4 1x5 |
+                //      | 2x0 2x1 2x2 2x3 2x4 2x5 |
+                // A =  | 3x0 3x1 3x2 3x3 3x4 3x5 |
+                //      | 4x0 4x1 4x2 4x3 4x4 4x5 |
+                //      | 5x0 5x1 5x2 5x3 5x4 5x5 |
+
+                //      | 0x6 |
+                //      | 1x6 |
+                //      | 2x6 |
+                // b =  | 3x6 |
+                //      | 4x6 |
+                //      | 5x6 |
+
+                A += vec6f * vec6f.transpose();
+                b += vec6f * (n.dot(d - s));
             }
         }
     }
