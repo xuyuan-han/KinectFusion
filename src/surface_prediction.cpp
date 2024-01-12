@@ -4,7 +4,7 @@
 #define SHORTMAX    32767               // SHRT_MAX;
 #define MAX_WEIGHT  128                // max weight
 
-// 三线型插值
+// tri-linear interpolation
 float interpolate_trilinearly(
     Eigen::Matrix<float, 3, 1, Eigen::DontAlign>& point,
     cv::Mat& volume,  // TSDF Volume
@@ -23,9 +23,7 @@ float interpolate_trilinearly(
     point_in_grid.y() = (point.y() < vy) ? (point_in_grid.y() - 1) : point_in_grid.y();
     point_in_grid.z() = (point.z() < vz) ? (point_in_grid.z() - 1) : point_in_grid.z();
 
-    // +0.5f 的原因是, point_in_grid 处体素存储的TSDF值是体素的中心点的TSDF值
-    // 三线型插值, ref: https://en.wikipedia.org/wiki/Trilinear_interpolation
-    // 计算精确的(浮点型)的点坐标和整型化之后的点坐标的差
+    // ref: https://en.wikipedia.org/wiki/Trilinear_interpolation
     const float a = (point.x() - (static_cast<float>(point_in_grid.x()) + 0.5f));
     const float b = (point.y() - (static_cast<float>(point_in_grid.y()) + 0.5f));
     const float c = (point.z() - (static_cast<float>(point_in_grid.z()) + 0.5f));
@@ -292,14 +290,14 @@ void surface_prediction(
     raycast_tsdf_kernel(
         volume.tsdf_volume,                 // Global TSDF Volume
         volume.color_volume,                // Global Color Volume
-        model_vertex,                       // 推理出来的顶点图
-        model_normal,                       // 推理出来的法向图
-        model_color,                        // 推理出来的颜色图
-        volume.volume_size,                 // Volume 尺寸
-        volume.voxel_scale,                 // Volume 缩放洗漱
-        cam_parameters,                     // 当前图层相机内参
-        truncation_distance,                // 截断距离
-        pose.block(0, 0, 3, 3),             // 从相机位姿中提取旋转矩阵
-        pose.block(0, 3, 3, 1));            // 从相机位姿中提取平移向量
+        model_vertex,                       // predicted vertex
+        model_normal,                       // predicted normal
+        model_color,                        // predicted color
+        volume.volume_size,                 
+        volume.voxel_scale,                 
+        cam_parameters,                     
+        truncation_distance,                
+        pose.block(0, 0, 3, 3),             // rotation matrix
+        pose.block(0, 3, 3, 1));            // translation vector
 
 }
