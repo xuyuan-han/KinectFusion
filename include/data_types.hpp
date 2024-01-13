@@ -26,12 +26,12 @@ struct CameraParameters {
 	{
 		if (level == 0) return *this;
 
-		const float scale_factor = powf(0.5f, static_cast<float>(level));
-		return CameraParameters{ image_width >> level, image_height >> level,
-									focal_x * scale_factor, focal_y * scale_factor,
-									(principal_x + 0.5f) * scale_factor - 0.5f,
-									(principal_y + 0.5f) * scale_factor - 0.5f };
-	}
+        const float scale_factor = powf(0.5f, static_cast<float>(level));
+        return CameraParameters { image_width >> level, image_height >> level,
+                                    focal_x * scale_factor, focal_y * scale_factor,
+                                    (principal_x + 0.5f) * scale_factor - 0.5f,
+                                    (principal_y + 0.5f) * scale_factor - 0.5f };
+    }
 
 	Eigen::Matrix3f getIntrinsicMatrix() const
 	{
@@ -345,7 +345,7 @@ public:
 		return coord;
 	}
 
-
+	
 	//! Returns number of cells in x-dir.
 	inline uint getDimX() const { return dx; }
 
@@ -384,7 +384,7 @@ public:
 		}
 		return volume;
 	}
-
+	
 	// Get weight as a opencv matrix
 	cv::Mat getWeight() {
 		int sizes[3] = { static_cast<int>(dx), static_cast<int>(dy), static_cast<int>(dz) };
