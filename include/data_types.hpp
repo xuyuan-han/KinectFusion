@@ -8,7 +8,6 @@
 #include <cstring>
 #include <fstream>
 
-
 using Vector4uc = Eigen::Matrix<unsigned char, 4, 1>;
 
 struct CameraParameters {
@@ -26,12 +25,12 @@ struct CameraParameters {
 	{
 		if (level == 0) return *this;
 
-        const float scale_factor = powf(0.5f, static_cast<float>(level));
-        return CameraParameters { image_width >> level, image_height >> level,
-                                    focal_x * scale_factor, focal_y * scale_factor,
-                                    (principal_x + 0.5f) * scale_factor - 0.5f,
-                                    (principal_y + 0.5f) * scale_factor - 0.5f };
-    }
+		const float scale_factor = powf(0.5f, static_cast<float>(level));
+		return CameraParameters{ image_width >> level, image_height >> level,
+									focal_x * scale_factor, focal_y * scale_factor,
+									(principal_x + 0.5f) * scale_factor - 0.5f,
+									(principal_y + 0.5f) * scale_factor - 0.5f };
+	}
 
 	Eigen::Matrix3f getIntrinsicMatrix() const
 	{
@@ -345,7 +344,6 @@ public:
 		return coord;
 	}
 
-	
 	//! Returns number of cells in x-dir.
 	inline uint getDimX() const { return dx; }
 
@@ -420,4 +418,36 @@ struct Frame {
 	Frame();
 
 
+};
+
+/*
+    *
+    * \brief Contains the internal volume representation
+    *
+    * This internal representation contains two volumes:
+    * (1) TSDF volume: The global volume used for depth frame fusion and
+    * (2) Color volume: Simple color averaging for colorized vertex output
+    *
+    * It also contains two important parameters:
+    * (1) Volume size: The x, y and z dimensions of the volume (in mm)
+    * (2) Voxel scale: The scale of a single voxel (in mm)
+    *
+    */
+// -
+struct VolumeData {
+    cv::Mat tsdf_volume; //short2
+    cv::Mat color_volume; //uchar4
+    Eigen::Vector3i volume_size;
+    float voxel_scale;
+
+    VolumeData(const Eigen::Vector3i _volume_size, const float _voxel_scale) :
+            //TSDF volume is 2 channel, one channel for TSDF value, one channel for weight
+            tsdf_volume(cv::Mat(_volume_size[1] * _volume_size[2], _volume_size[0], CV_16SC2)),
+            color_volume(cv::Mat(_volume_size[1] * _volume_size[2], _volume_size[0], CV_8UC3)),
+            volume_size(_volume_size), voxel_scale(_voxel_scale)
+    {
+        // initialize the volume
+        tsdf_volume.setTo(0);
+        color_volume.setTo(0);
+    }
 };
