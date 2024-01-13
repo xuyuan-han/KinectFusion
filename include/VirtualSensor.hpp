@@ -59,11 +59,10 @@ public:
 
 		std::cout << "ProcessNextFrame [" << m_currentIdx << " | " << m_filenameColorImages.size() << "]" << std::endl;
 
-		cv::Mat rgbImage = cv::imread(m_baseDir + m_filenameColorImages[m_currentIdx]);
+		rgbImage = cv::imread(m_baseDir + m_filenameColorImages[m_currentIdx]);
        
-
         // Depth images are scaled by 5000
-        cv::Mat_<float> dImage = cv::imread(m_baseDir + m_filenameDepthImages[m_currentIdx], cv::IMREAD_UNCHANGED);
+        dImage = cv::imread(m_baseDir + m_filenameDepthImages[m_currentIdx], cv::IMREAD_UNCHANGED);
 
 		dImage /= 5000.0f;
 

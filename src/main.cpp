@@ -4,7 +4,7 @@ int main(int argc, char **argv)
 {
    CameraParameters camera;
    VirtualSensor sensor;
-   Eigen::Matrix3f intrinsics=sensor.getDepthIntrinsics();  //TODO: here should be Matrix3f right?
+   Eigen::Matrix3f intrinsics=sensor.getDepthIntrinsics();
    camera.focal_x=intrinsics(0, 0);
    camera.focal_y=intrinsics(1, 1);
    camera.principal_x=intrinsics(0, 2);
