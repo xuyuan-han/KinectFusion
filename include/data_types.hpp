@@ -369,32 +369,35 @@ public:
 		vol[getPosFromTuple(x, y, z)] = value;
 	}
 
-	// Get volume as a opencv matrix
+	// Get volume as a 2d opencv matrix with dimensions (dy *dz, dx) and two channels (sdf, weight) 
 	cv::Mat getVolume() {
-		int sizes[3] = { static_cast<int>(dx), static_cast<int>(dy), static_cast<int>(dz) };
-		cv::Mat volume = cv::Mat(3, sizes, CV_32FC1, cv::Scalar(0));
+				int sizes[3] = { static_cast<int>(dy * dz), static_cast<int>(dx), 2 };
+				cv::Mat volume = cv::Mat(3, sizes, CV_16SC1, cv::Scalar(0));
+				for (int i = 0; i < dx; i++) {
+					for (int j = 0; j < dy; j++) {
+						for (int k = 0; k < dz; k++) {
+							volume.at<short>(j * dz + k, i, 0) = vol_access(i, j, k).sdf;
+							volume.at<short>(j * dz + k, i, 1) = vol_access(i, j, k).weight;
+						}
+					}
+				}
+	}
+	
+	// Get color Volume as a 2d opencv matrix with dimensions (dy *dz, dx) and three channels (r, g, b) data type uchar
+	cv::Mat getColorVolume() {
+		int sizes[3] = { static_cast<int>(dy * dz), static_cast<int>(dx), 3 };
+		cv::Mat volume = cv::Mat(3, sizes, CV_8UC1, cv::Scalar(0));
 		for (int i = 0; i < dx; i++) {
 			for (int j = 0; j < dy; j++) {
 				for (int k = 0; k < dz; k++) {
-					volume.at<float>(i, j, k) = vol_access(i, j, k).sdf;
+					volume.at<uchar>(j * dz + k, i, 0) = vol_access(i, j, k).color[0];
+					volume.at<uchar>(j * dz + k, i, 1) = vol_access(i, j, k).color[1];
+					volume.at<uchar>(j * dz + k, i, 2) = vol_access(i, j, k).color[2];
 				}
 			}
 		}
 		return volume;
-	}
-	
-	// Get weight as a opencv matrix
-	cv::Mat getWeight() {
-		int sizes[3] = { static_cast<int>(dx), static_cast<int>(dy), static_cast<int>(dz) };
-		cv::Mat weight = cv::Mat(3, sizes, CV_32FC1, cv::Scalar(0));
-		for (int i = 0; i < dx; i++) {
-			for (int j = 0; j < dy; j++) {
-				for (int k = 0; k < dz; k++) {
-					weight.at<float>(i, j, k) = vol_access(i, j, k).weight;
-				}
-			}
-		}
-		return weight;
+		
 	}
 
 };
