@@ -8,7 +8,7 @@
 float interpolate_trilinearly(
     Eigen::Matrix<float, 3, 1, Eigen::DontAlign>& point,
     cv::Mat& volume,  // TSDF Volume
-    const Eigen::Vector3f& volume_size,
+    const Eigen::Vector3i& volume_size,
     const float voxel_scale)
 {
     //cooridnate in grid and in int

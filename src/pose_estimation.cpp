@@ -150,8 +150,8 @@ void estimate_step(const Eigen::Matrix3f& rotation_current,
                 //      | 4x6 |
                 //      | 5x6 |
 
-                A += vec6f * vec6f.transpose();
-                b += vec6f * (n.dot(d - s));
+                A += (vec6f.cast<double>()) * (vec6f.transpose().cast<double>());
+                b += (vec6f.cast<double>()) * (n.dot(d - s));
             }
         }
     }
