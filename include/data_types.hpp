@@ -207,14 +207,14 @@ public:
 	}
 
 	//! Zeros out the memory
-	void Volume::zeroOutMemory()
+	void zeroOutMemory()
 	{
 		for (uint i1 = 0; i1 < dx * dy * dz; i1++)
 			vol[i1].sdf = double(0.0);
 	}
 
 	//! Returns the Data.
-	Voxel* Volume::getData()
+	Voxel* getData()
 	{
 		return vol;
 	};
@@ -373,7 +373,7 @@ public:
 
 	// Get volume as a opencv matrix
 	cv::Mat getVolume() {
-		int sizes[3] = { dx, dy, dz };
+		int sizes[3] = { static_cast<int>(dx), static_cast<int>(dy), static_cast<int>(dz) };
 		cv::Mat volume = cv::Mat(3, sizes, CV_32FC1, cv::Scalar(0));
 		for (int i = 0; i < dx; i++) {
 			for (int j = 0; j < dy; j++) {
@@ -382,11 +382,12 @@ public:
 				}
 			}
 		}
+		return volume;
 	}
 
 	// Get weight as a opencv matrix
 	cv::Mat getWeight() {
-		int sizes[3] = { dx, dy, dz };
+		int sizes[3] = { static_cast<int>(dx), static_cast<int>(dy), static_cast<int>(dz) };
 		cv::Mat weight = cv::Mat(3, sizes, CV_32FC1, cv::Scalar(0));
 		for (int i = 0; i < dx; i++) {
 			for (int j = 0; j < dy; j++) {
@@ -395,6 +396,7 @@ public:
 				}
 			}
 		}
+		return weight;
 	}
 
 };
