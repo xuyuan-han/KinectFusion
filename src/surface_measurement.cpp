@@ -82,18 +82,31 @@ void compute_map(const cv::Mat_<float>& depthmap, const CameraParameters& camera
     // compute normal
     for (size_t i = 0; i < row; i++)
     {
+        
         for (size_t t = 0; t < col; t++)
-        {
-            cv::Vec3f p0 = vertexMap.at<cv::Vec3f>(i, t);
-            cv::Vec3f p1 = vertexMap.at<cv::Vec3f>(i, t+ 1);
-            cv::Vec3f p2 = vertexMap.at<cv::Vec3f>(i + 1, t);
-            cv::Vec3f p3 = vertexMap.at<cv::Vec3f>(i + 1, t + 1);
-            cv::Vec3f dp_dx = (p1 - p0 + p3 - p2) / 2.0f;
-            cv::Vec3f dp_dy = (p2 - p0 + p3 - p1) / 2.0f;
+        {   
+            if (i==0||t==0||i==row-1||t==col-1)
+            {
+               normalMap.at<cv::Vec3f>(i, t)=cv::Vec3f(0,0,0);
+            }
+            else
+            {
+                cv::Vec3f p0 = vertexMap.at<cv::Vec3f>(i-1, t);
+                cv::Vec3f p1 = vertexMap.at<cv::Vec3f>(i+1, t);
+                cv::Vec3f p2 = vertexMap.at<cv::Vec3f>(i , t-1);
+                cv::Vec3f p3 = vertexMap.at<cv::Vec3f>(i , t + 1);
+                cv::Vec3f dp_dx = (p1 - p0) ;
+                cv::Vec3f dp_dy = (p2 - p3 );
 
-            
-            cv::Vec3f normal = dp_dx.cross(dp_dy);
-            normalMap.at<cv::Vec3f>(i, t) = normal;
+                
+                cv::Vec3f normal = dp_dx.cross(dp_dy);
+                if (normal!=0)
+                {
+                    cv::normalize(normal,normal,1);
+                }
+                
+                normalMap.at<cv::Vec3f>(i, t) = normal;
+            }
         }
     }
 
