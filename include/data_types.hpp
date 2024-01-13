@@ -430,21 +430,18 @@ struct Frame {
     */
 // -
 struct VolumeData {
-    // OpenCV 提供的在GPU上的图像数据类型
     cv::Mat tsdf_volume; //short2
     cv::Mat color_volume; //uchar4
     Eigen::Vector3i volume_size;
     float voxel_scale;
 
-    // 构造函数
     VolumeData(const Eigen::Vector3i _volume_size, const float _voxel_scale) :
-            // 注意 TSDF 是2通道的, 意味着其中一个通道存储TSDF函数值, 另外一个通道存储其权重
-            // 这个第一维的尺寸有些奇特啊
+            //TSDF volume is 2 channel, one channel for TSDF value, one channel for weight
             tsdf_volume(cv::Mat(_volume_size[1] * _volume_size[2], _volume_size[0], CV_16SC2)),
             color_volume(cv::Mat(_volume_size[1] * _volume_size[2], _volume_size[0], CV_8UC3)),
             volume_size(_volume_size), voxel_scale(_voxel_scale)
     {
-        // 全部清空
+        // initialize the volume
         tsdf_volume.setTo(0);
         color_volume.setTo(0);
     }
