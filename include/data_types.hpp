@@ -16,12 +16,35 @@ struct CameraParameters {
 	float focal_x, focal_y;
 	float principal_x, principal_y;
 
+	// Empty constructor
+	CameraParameters() {}
+
+
+	CameraParameters( const int image_width, const int image_height,
+		const float focal_x, const float focal_y,
+		const float principal_x, const float principal_y) :
+		image_width(image_width), image_height(image_height),
+		focal_x(focal_x), focal_y(focal_y),
+		principal_x(principal_x), principal_y(principal_y)
+	{ }
+
+	CameraParameters(
+		const int image_width, const int image_height,
+		Eigen::Matrix3f K)
+	{ 
+		this->image_width = image_width;
+		this->image_height = image_height;
+		this->focal_x = K(0, 0);
+		this->focal_y = K(1, 1);
+		this->principal_x = K(0, 2);
+		this->principal_y = K(1, 2);
+	}
 	/**
-	 * Returns camera parameters for a specified pyramid level; each level corresponds to a scaling of pow(.5, level)
-	 * @param level The pyramid level to get the parameters for with 0 being the non-scaled version,
-	 * higher levels correspond to smaller spatial size
-	 * @return A CameraParameters structure containing the scaled values
-	 */
+ * Returns camera parameters for a specified pyramid level; each level corresponds to a scaling of pow(.5, level)
+ * @param level The pyramid level to get the parameters for with 0 being the non-scaled version,
+ * higher levels correspond to smaller spatial size
+ * @return A CameraParameters structure containing the scaled values
+ */
 	CameraParameters level(const size_t level) const
 	{
 		if (level == 0) return *this;
@@ -32,6 +55,7 @@ struct CameraParameters {
                                     (principal_x + 0.5f) * scale_factor - 0.5f,
                                     (principal_y + 0.5f) * scale_factor - 0.5f };
     }
+
 
 	Eigen::Matrix3f getIntrinsicMatrix() const
 	{
@@ -400,22 +424,24 @@ public:
 };
 
 struct Frame {
-	const CameraParameters camera_parameters;
-	const unsigned char* color_map;
-	const float* depth_map;
-	const uint* class_map;
+	 CameraParameters camera_parameters;
+	 unsigned char* color_map;
+	 float* depth_map;
+	 uint* class_map;
 
 	std::vector<Eigen::Vector3f> verices;
 	std::vector<Eigen::Vector3f> normals;
 	Eigen::Matrix4f extrinsic;
 	Eigen::Matrix4f depth_extrinsics;
 
-	Frame(const CameraParameters camera_parameters, const unsigned char* color_map, const float* depth_map, const uint* class_map, Eigen::Matrix4f extrinsic, Eigen::Matrix4f depth_extrinsics) :
+	// Empty constructor
+	Frame() {}
+
+	Frame(const CameraParameters camera_parameters,  unsigned char* color_map,  float* depth_map,  uint* class_map, Eigen::Matrix4f extrinsic, Eigen::Matrix4f depth_extrinsics) :
 		camera_parameters(camera_parameters), color_map(color_map), depth_map(depth_map), class_map(class_map), extrinsic(extrinsic), depth_extrinsics(depth_extrinsics)
 	{
 	}
 
-	Frame();
-
+	
 
 };
