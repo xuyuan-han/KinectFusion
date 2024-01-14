@@ -371,16 +371,17 @@ public:
 
 	// Get volume as a 2d opencv matrix with dimensions (dy *dz, dx) and two channels (sdf, weight) 
 	cv::Mat getVolume() {
-				int sizes[3] = { static_cast<int>(dy * dz), static_cast<int>(dx), 2 };
-				cv::Mat volume = cv::Mat(3, sizes, CV_16SC1, cv::Scalar(0));
-				for (int i = 0; i < dx; i++) {
-					for (int j = 0; j < dy; j++) {
-						for (int k = 0; k < dz; k++) {
-							volume.at<short>(j * dz + k, i, 0) = vol_access(i, j, k).sdf;
-							volume.at<short>(j * dz + k, i, 1) = vol_access(i, j, k).weight;
-						}
-					}
+		int sizes[3] = { static_cast<int>(dy * dz), static_cast<int>(dx), 2 };
+		cv::Mat volume = cv::Mat(3, sizes, CV_16SC1, cv::Scalar(0));
+		for (int i = 0; i < dx; i++) {
+			for (int j = 0; j < dy; j++) {
+				for (int k = 0; k < dz; k++) {
+					volume.at<short>(j * dz + k, i, 0) = vol_access(i, j, k).sdf;
+					volume.at<short>(j * dz + k, i, 1) = vol_access(i, j, k).weight;
 				}
+			}
+		}
+		return volume;
 	}
 	
 	// Get color Volume as a 2d opencv matrix with dimensions (dy *dz, dx) and three channels (r, g, b) data type uchar
@@ -396,10 +397,8 @@ public:
 				}
 			}
 		}
-		return volume;
-		
+		return volume;	
 	}
-
 };
 
 struct Frame {
