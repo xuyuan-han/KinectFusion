@@ -178,6 +178,23 @@ public:
 
 		compute_ddx_dddx();
 	}
+	Volume(const Eigen::Vector3i _volume_size, const float _voxel_scale)
+	{
+		min = Eigen::Vector3d(-_volume_size[0] / 2, -_volume_size[1] / 2, -_volume_size[2] / 2);
+		min = min * _voxel_scale;
+		max = Eigen::Vector3d(_volume_size[0] / 2, _volume_size[1] / 2, _volume_size[2] / 2);
+		max = max * _voxel_scale;
+		diag = max - min;
+		dx = _volume_size[0];
+		dy = _volume_size[1];
+		dz = _volume_size[2];
+		m_dim = 3;
+		vol = NULL;
+
+		vol = new Voxel[dx * dy * dz];
+
+		compute_ddx_dddx();
+	}
 
 	~Volume()
 	{

@@ -1,22 +1,33 @@
 #include "surface_reconstruction.hpp"
 
-void Surface_Reconstruction::integrate(Volume vol, Frame frame, float truncationDistance)
+void Surface_Reconstruction::integrate(cv::Mat depth, cv::Mat colorMap, Volume* vol,CameraParameters camera_parameters , float trancutionDistance, Eigen::Matrix4f pos)
 {
-	Eigen::Matrix4f worldToCamera= frame.extrinsic;
+
+
+	Eigen::Matrix4f worldToCamera= pos;
 	Eigen::Matrix4f cameraToWorld= worldToCamera.inverse();
-	Eigen::Matrix3f intrinsics= frame.camera_parameters.getIntrinsicMatrix();
+	Eigen::Matrix3f intrinsics= camera_parameters.getIntrinsicMatrix();
 	Eigen::Matrix3f intrinsicsInv= intrinsics.inverse();
-	int width= frame.camera_parameters.image_width;
-	int height= frame.camera_parameters.image_height;
+	int width= camera_parameters.image_width;
+	int height= camera_parameters.image_height;
 	
 	Eigen:: Matrix3d R= worldToCamera.block<3,3>(0,0).cast<double>();
 	Eigen:: Vector3d t= worldToCamera.block<3,1>(0,3).cast<double>();
-	for (int z = 0; z < vol.getDimZ(); z++)
-		for (int y = 0; y < vol.getDimY(); y++)
-			for (int x = 0; x < vol.getDimX(); x++)
+
+
+	// Convert depth map to float *
+	float* depth_map = depth.ptr<float>();
+	// Dummy class map for now
+	uint * class_map = new uint[width * height];
+
+
+
+	for (int z = 0; z < vol->getDimZ(); z++)
+		for (int y = 0; y < vol->getDimY(); y++)
+			for (int x = 0; x < vol->getDimX(); x++)
 			{
 				// Indices to world coordinates
-				Eigen::Vector3d worldPoint = vol.pos(x, y, z);
+				Eigen::Vector3d worldPoint = vol->pos(x, y, z);
 				// To Homogeneous coordinates
 				Eigen::Vector4f worldPointH = Eigen::Vector4f(worldPoint[0], worldPoint[1], worldPoint[2], 1);
 				// To camera frame coordinates
@@ -30,23 +41,23 @@ void Surface_Reconstruction::integrate(Volume vol, Frame frame, float truncation
 
 				if (pixel[0] >= 0 && pixel[0] < width && pixel[1] >= 0 && pixel[1] < height)
 				{
-					float depth = frame.depth_map[pixel[1] * width + pixel[0]];
+					float depth = depth_map[pixel[1] * width + pixel[0]];
 					if (depth > 0)
 					{
 						//Calculate Lambda
 						double lambda = getLambda(pixel, intrinsics);
 						double sdf = (-1.f) * (1.0f / lambda * cameraPointNonHomogenous.norm() - depth);
-						if (sdf >= -truncationDistance)
+						if (sdf >= -trancutionDistance)
 						{
 							float weight = 1.0f;
-							float oldSdf = vol.getVoxel(x, y, z).sdf;
-							float oldWeight = vol.getVoxel(x, y, z).weight;
-							uint oldClass = vol.getVoxel(x, y, z).class_id;
+							float oldSdf = vol->getVoxel(x, y, z).sdf;
+							float oldWeight = vol->getVoxel(x, y, z).weight;
+							uint oldClass = vol->getVoxel(x, y, z).class_id;
 
 							float newSdf = (oldSdf * oldWeight + sdf * weight) / (oldWeight + weight);
 							float newWeight = oldWeight + weight;
 
-							uint newClass = frame.class_map[pixel[1] * width + pixel[0]];
+							uint newClass = class_map[pixel[1] * width + pixel[0]];
 
 							if (newClass != oldClass)
 							{
@@ -55,11 +66,12 @@ void Surface_Reconstruction::integrate(Volume vol, Frame frame, float truncation
 								if (r < (double)oldWeight / (oldWeight + weight))
 									newClass = oldClass;
 							}
-							Vector4uc oldColor = vol.getVoxel(x, y, z).color;
+							Vector4uc oldColor = vol->getVoxel(x, y, z).color;
 							Vector4uc color = Vector4uc();
-							color[0] = (frame.color_map[3 * (pixel[1] * width + pixel[0])] * weight + oldColor[0] * oldWeight) / (oldWeight + weight);
-							color[1] = (frame.color_map[3 * (pixel[1] * width + pixel[0]) + 1] * weight + oldColor[1] * oldWeight) / (oldWeight + weight);
-							color[2] = (frame.color_map[3 * (pixel[1] * width + pixel[0]) + 2] * weight + oldColor[2] * oldWeight) / (oldWeight + weight);
+							color[0] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[0];
+							color[1] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[1];
+							color[2] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[2];
+
 							color[3] = 255;
 							Voxel newVoxel = Voxel();
 							newVoxel.sdf = newSdf;
@@ -68,7 +80,7 @@ void Surface_Reconstruction::integrate(Volume vol, Frame frame, float truncation
 							newVoxel.color = color;
 
 
-							vol.setVoxel(x, y, z, newVoxel);
+							vol->setVoxel(x, y, z, newVoxel);
 
 						}
 
@@ -79,6 +91,27 @@ void Surface_Reconstruction::integrate(Volume vol, Frame frame, float truncation
 
 
 
+
+}
+void Surface_Reconstruction::surface_reconstruction(cv::Mat depth, cv::Mat colorMap, VolumeData vol, float trancutionDistance, Eigen::Matrix4f pos)
+{
+	Eigen::Matrix4f worldToCamera = pos;
+	Eigen::Matrix4f cameraToWorld = worldToCamera.inverse();
+	Eigen::Matrix3f intrinsics = Eigen::Matrix3f::Identity();
+	Eigen::Matrix3f intrinsicsInv = intrinsics.inverse();
+	int width = depth.cols;
+	int height = depth.rows;
+
+	Eigen::Matrix3d R = worldToCamera.block<3, 3>(0, 0).cast<double>();
+	Eigen::Vector3d t = worldToCamera.block<3, 1>(0, 3).cast<double>();
+
+	for (int x = 0; x < vol.volume_size[2]; x++)
+		for (int y = 0; y < vol.volume_size[1]; y++)
+			for (int z = 0; y < vol.volume_size[0]; z++) {
+				// Get point in the word frame. 
+
+
+			};
 
 }
 

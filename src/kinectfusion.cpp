@@ -5,7 +5,7 @@ namespace kinectfusion {
                        const GlobalConfiguration _configuration) :
             camera_parameters(_camera_parameters),
             configuration(_configuration),
-            volume(), //TODO: check the init parameters
+            volume(_configuration.volume_size, _configuration.voxel_scale), //TODO: check the init parameters
             volumedata(_configuration.volume_size, _configuration.voxel_scale),
             model_data(_configuration.num_levels, _camera_parameters),
             current_pose{},
@@ -46,13 +46,13 @@ namespace kinectfusion {
             return false;
         poses.push_back(current_pose);
 
-        surface_reconstruction(
+        Surface_Reconstruction::integrate(
             frame_data.depth_pyramid[0],
             frame_data.color_pyramid[0],
-            volume,
+            &volume,
             camera_parameters,
             configuration.truncation_distance,
-            current_pose.inverse());
+            current_pose);
 
         volumedata.tsdf_volume = volume.getVolume();
         volumedata.color_volume = volume.getColorVolume();

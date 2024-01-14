@@ -5,10 +5,9 @@
 #include "data_types.hpp"
 
 namespace Surface_Reconstruction {
-	//! Integrate a new reading into the TSDF volume
-	//! First parameter is the TSDF volume
-	//! Second parameter is the Frame to integrate
-	void integrate(Volume vol, Frame frame, float trancutionDistance);
+
+	void integrate(cv::Mat depth, cv::Mat colorMap, Volume* vol, CameraParameters camera_parameters, float trancutionDistance, Eigen::Matrix4f pos);
+	void surface_reconstruction(cv::Mat depth, cv::Mat colorMap, VolumeData vol,float trancutionDistance, Eigen::Matrix4f pos);
 
 	double getLambda(Eigen::Vector2i pixel, Eigen::Matrix3f intrinsics);
 
