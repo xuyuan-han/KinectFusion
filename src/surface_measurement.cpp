@@ -1,5 +1,4 @@
 #include "surface_measurement.hpp"
-#include <opencv2/opencv.hpp>
 FrameData surface_measurement(const cv::Mat_<float>& input_frame,
     const CameraParameters& camera_params,
     const size_t num_levels, const float depth_cutoff,
