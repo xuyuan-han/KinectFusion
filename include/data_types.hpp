@@ -406,6 +406,7 @@ public:
 				}
 			}
 		}
+		return volume;
 	}
 	
 	// Get weight as a opencv matrix
