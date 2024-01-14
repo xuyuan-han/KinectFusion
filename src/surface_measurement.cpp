@@ -100,7 +100,7 @@ void compute_map(const cv::Mat_<float>& depthmap, const CameraParameters& camera
 
                 
                 cv::Vec3f normal = dp_dx.cross(dp_dy);
-                if (normal!=0)
+                if (cv::norm(normal) != 0.0)
                 {
                     cv::normalize(normal,normal,1);
                 }
