@@ -33,7 +33,7 @@ void raycast_tsdf_kernel(
 );
 
 void surface_prediction(
-    const VolumeData& volume,                   // Global Volume
+    VolumeData& volume,                   // Global Volume
     cv::Mat& model_vertex,                       
     cv::Mat& model_normal,                       
     cv::Mat& model_color,                        
