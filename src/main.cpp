@@ -4,7 +4,17 @@ int main(int argc, char **argv)
 {
     CameraParameters cameraparameters;
     GlobalConfiguration configuration;
+
+    std::string filenameIn = std::string("../Data/rgbd_dataset_freiburg1_xyz/");
+
     VirtualSensor sensor;
+    // Load video
+    std::cout << "Initialize virtual sensor..." << std::endl;
+    if (!sensor.init(filenameIn)) {
+        std::cout << "Failed to initialize the sensor!\nCheck file path!" << std::endl;
+        return -1;
+    }
+
     Eigen::Matrix3f intrinsics=sensor.getDepthIntrinsics();
     cameraparameters.focal_x=intrinsics(0, 0);
     cameraparameters.focal_y=intrinsics(1, 1);
@@ -12,15 +22,6 @@ int main(int argc, char **argv)
     cameraparameters.principal_y=intrinsics(1, 2);
     cameraparameters.image_width=sensor.getDepthImageWidth();
     cameraparameters.image_height=sensor.getDepthImageHeight();
-
-    std::string filenameIn = std::string("../Data/rgbd_dataset_freiburg1_xyz/");
-
-    // Load video
-    std::cout << "Initialize virtual sensor..." << std::endl;
-    if (!sensor.init(filenameIn)) {
-        std::cout << "Failed to initialize the sensor!\nCheck file path!" << std::endl;
-        return -1;
-    }
 
     Pipeline pipeline {cameraparameters, configuration};
     while(sensor.processNextFrame()){
