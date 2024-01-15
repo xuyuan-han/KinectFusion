@@ -73,12 +73,19 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     
     std::cout << "Surface prediction done" << std::endl;
 
+    last_model_frame = model_data.color_pyramid[0];
     ++frame_id;
     return true;
 }
+
 std::vector<Eigen::Matrix4f> Pipeline::get_poses() const
 {
     for (auto pose : poses)
         pose.block(0, 0, 3, 3) = pose.block(0, 0, 3, 3).inverse();
     return poses;
+}
+
+cv::Mat Pipeline::get_last_model_frame() const
+{
+    return last_model_frame;
 }

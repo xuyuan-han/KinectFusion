@@ -29,26 +29,7 @@ int main(int argc, char **argv)
         if (!success)
             std::cout << "Frame " << sensor.getCurrentFrameCnt() << " could not be processed" << std::endl;
             break;
+        cv::imshow("Pipeline Output", pipeline.get_last_model_frame());
+        cv::waitKey(5000); // Wait 5 seconds
     }
 }
-
-	// FrameData frame=surface_measurement(sensor.getDepth(), cameraparameters,3,1000.f,5,1.0f,1.0f);
-	// cv::Mat vertex=frame.vertex_pyramid[0];
-	// cv::Mat normal=frame.normal_pyramid[0];
-	// cv::Mat rgb=frame.color_pyramid[0];
-    // cv::Mat depth=frame.depth_pyramid[0];
-
-	// cv::imwrite("rgb.png", rgb);
-    // cv::imwrite("depth.png", depth);
-    // cv::imwrite("vertex.png", vertex);
-
-	// cv::viz::Viz3d myWindow("Viz Demo");
-    // myWindow.setBackgroundColor(cv::viz::Color::black());
-
-    // // Show coordinate system
-    // myWindow.showWidget("Coordinate Widget", cv::viz::WCoordinateSystem());
-
-    // // Show point cloud
-    // //cv::viz::WCloud pointCloud(normal, cv::viz::Color::green());
-    // cv::viz::WCloud pointCloud(vertex, cv::viz::Color::green());
-    // myWindow.showWidget("points", pointCloud);
