@@ -5,7 +5,7 @@
 #include "surface_reconstruction.hpp"
 #include "VirtualSensor.hpp"
 #include "data_types.hpp"
-#include <opencv2/viz/viz3d.hpp>
+// #include <opencv2/viz/viz3d.hpp>
 
 class Pipeline {
 public:
