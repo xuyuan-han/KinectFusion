@@ -87,6 +87,8 @@ void createAndSavePointCloud(const cv::Mat& tsdfMatrix, const std::string& outpu
 
 bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map)
 {
+    std::cout << ">> 1 Surface measurement begin" << std::endl;
+
     FrameData frame_data = surface_measurement(
         depth_map,
         camera_parameters,
@@ -96,9 +98,13 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         configuration.bfilter_color_sigma,
         configuration.bfilter_spatial_sigma);
     frame_data.color_pyramid[0] = color_map;
+    // std::cout << frame_data.depth_pyramid[0] << std::endl;
 
-    std::cout << "Pose before ICP: " << current_pose << std::endl;
+
+    // std::cout << "Pose before ICP: \n" << current_pose << std::endl;
     std::cout << ">>> 1 Surface measurement done" << std::endl;
+
+    std::cout << ">> 2 Pose estimation begin" << std::endl;
 
     bool icp_success { true };
     if (frame_id > 0) { // Do not perform ICP for the very first frame
@@ -118,6 +124,8 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     std::cout << ">>> 2 Pose estimation done" << std::endl;
 
+    std::cout << ">> 3 Surface reconstruction begin" << std::endl;
+
     Surface_Reconstruction::integrate(
         frame_data.depth_pyramid[0],
         frame_data.color_pyramid[0],
@@ -128,14 +136,26 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     std::cout << ">>> 3 Surface reconstruction done" << std::endl;
 
+    std::cout << ">> 3.5 Point cloud generation begin" << std::endl;
+
     volumedata.tsdf_volume = volume.getVolume();
     volumedata.color_volume = volume.getColorVolume();
 
     createAndSavePointCloud(volumedata.tsdf_volume, "pointcloud.ply", configuration.volume_size);
 
-    std::cout << "Point cloud generated" << std::endl;
+    std::cout << ">>> 3.5 Point cloud generation done" << std::endl;
 
-    for (int level = 0; level < configuration.num_levels; ++level)
+    std::cout << ">> 4 Surface prediction begin" << std::endl;
+
+    // for (int level = 0; level < configuration.num_levels; ++level){
+    //     cv::imshow("vertex"+std::to_string(level), model_data.vertex_pyramid[level]);
+    //     cv::imshow("normal"+std::to_string(level), model_data.normal_pyramid[level]);
+    //     cv::imshow("color"+std::to_string(level), model_data.color_pyramid[level]);
+    // }
+    // cv::waitKey(0);
+
+    for (int level = 0; level < configuration.num_levels; ++level){
+        std::cout << ">> 4 (level)" << level << " Surface prediction begin" << std::endl;
         surface_prediction(
             volumedata,
             model_data.vertex_pyramid[level],
@@ -144,8 +164,18 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
             camera_parameters.level(level),
             configuration.truncation_distance,
             current_pose);
+        std::cout << ">> 4 (level)" << level << " Surface prediction done" << std::endl;
+    }
+
+    // for (int level = 0; level < configuration.num_levels; ++level){
+    //     cv::imshow("vertex"+std::to_string(level), model_data.vertex_pyramid[level]);
+    //     cv::imshow("normal"+std::to_string(level), model_data.normal_pyramid[level]);
+    //     cv::imshow("color"+std::to_string(level), model_data.color_pyramid[level]);
+    // }
+    // cv::waitKey(0);
     
     std::cout << ">>> 4 Surface prediction done" << std::endl;
+    std::cout << "-----------------------------------" << std::endl;
 
     last_model_color_frame = model_data.color_pyramid[0];
     last_model_vertex_frame = model_data.vertex_pyramid[0];

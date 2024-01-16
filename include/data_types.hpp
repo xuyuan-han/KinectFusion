@@ -474,7 +474,8 @@ struct VolumeData {
     struct GlobalConfiguration {
         // The overall size of the volume (in mm). Will be allocated on the GPU and is thus limited by the amount of
         // storage you have available. Dimensions are (x, y, z).
-        Eigen::Vector3i volume_size { Eigen::Vector3i(512, 512, 512) };
+	Eigen::Vector3i volume_size { Eigen::Vector3i(512, 512, 512) };
+	// Eigen::Vector3i volume_size { Eigen::Vector3i(128, 128, 128) };
 
         // The amount of mm one single voxel will represent in each dimension. Controls the resolution of the volume.
         float voxel_scale { 2.f };

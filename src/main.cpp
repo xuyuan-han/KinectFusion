@@ -25,6 +25,14 @@ int main(int argc, char **argv)
 
     Pipeline pipeline {cameraparameters, configuration};
     while(sensor.processNextFrame()){
+
+        // for (int i = 0; i < sensor.getDepth().rows; ++i) {
+        //     for (int j = 0; j < 5; ++j) {
+        //         sensor.processNextFrame();
+        //     }
+        // }
+        // std::cout << sensor.getDepth() << std::endl;
+
         bool success=pipeline.process_frame(sensor.getDepth(), sensor.getColorRGBX());
 
         if (!success){
@@ -56,6 +64,6 @@ int main(int argc, char **argv)
         cv::imwrite(filenameOut + "PipelineOutputVertex_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", pipeline.get_last_model_vertex_frame());
         cv::imwrite(filenameOut + "PipelineOutputNormal_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", pipeline.get_last_model_normal_frame());
 
-        cv::waitKey(0);
+        cv::waitKey(500);
     }
 }

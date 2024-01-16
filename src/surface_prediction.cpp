@@ -61,8 +61,27 @@ float get_min_time(
     const Eigen::Matrix<float, 3, 1, Eigen::DontAlign>& direction)
 {
     float txmin = ((direction.x() > 0 ? 0.f : volume_max[0]) - origin.x()) / direction.x();
+    // std::cout << "volume_max[0] " << volume_max[0] << std::endl;
+    // std::cout << "direction.x " << direction.x() << std::endl;
+    // std::cout << "origin.x " << origin.x() << std::endl;
+    // std::cout << "txmin " << txmin << std::endl;
+    // std::cout << "sxmin " << txmin * direction.x() << std::endl;
+
     float tymin = ((direction.y() > 0 ? 0.f : volume_max[1]) - origin.y()) / direction.y();
+    // std::cout << "direction.y " << direction.y() << std::endl;
+    // std::cout << "origin.y " << origin.y() << std::endl;
+    // std::cout << "tymin " << tymin << std::endl;
+    // std::cout << "symin " << tymin * direction.y() << std::endl;
+
     float tzmin = ((direction.z() > 0 ? 0.f : volume_max[2]) - origin.z()) / direction.z();
+    // std::cout << "direction.z " << direction.z() << std::endl;
+    // std::cout << "origin.z " << origin.z() << std::endl;
+    // std::cout << "tzmin " << tzmin << std::endl;
+    // std::cout << "szmin " << tzmin * direction.z() << std::endl;
+    // std::cout << std::endl;
+    // std:;cout << "txmin " << txmin << std::endl;
+    // std::cout << "tymin " << tymin << std::endl;
+    // std::cout << "tzmin " << tzmin << std::endl;
 
     return fmax(fmax(txmin, tymin), tzmin);
 }
@@ -76,6 +95,9 @@ float get_max_time(
     float txmax = ((direction.x() > 0 ? volume_max[0] : 0.f) - origin.x()) / direction.x();
     float tymax = ((direction.y() > 0 ? volume_max[1] : 0.f) - origin.y()) / direction.y();
     float tzmax = ((direction.z() > 0 ? volume_max[2] : 0.f) - origin.z()) / direction.z();
+    // std::cout << "txmax " << txmax << std::endl;
+    // std::cout << "tymax " << tymax << std::endl;
+    // std::cout << "tzmax " << tzmax << std::endl;
 
     return fmin(fmin(txmax, tymax), tzmax);
 }
@@ -94,8 +116,12 @@ void raycast_tsdf_kernel(
     const Eigen::Matrix<float, 3, 1, Eigen::DontAlign> translation
 )
 {
+    // std::cout << "\nmodel_vertex size: " << model_vertex.size() << std::endl;
     for(int x = 0; x < model_vertex.cols; ++x){
         for(int y = 0; y < model_vertex.rows; ++y){
+    // for(int x = model_vertex.cols/2.f; x < model_vertex.cols; ++x){
+    //     for(int y = model_vertex.rows/2.f; y < model_vertex.rows; ++y){
+            // std::cout << "(x,y) = (" << x << "," << y << ")" << std::endl;
             const Eigen::Vector3f volume_range = volume_size.cast<float>() * voxel_scale; 
             const Eigen::Matrix<float, 3, 1, Eigen::DontAlign> pixel_position(
                         (x - cam_parameters.principal_x) / cam_parameters.focal_x,      // X/Z
@@ -104,17 +130,27 @@ void raycast_tsdf_kernel(
             Eigen::Matrix<float, 3, 1, Eigen::DontAlign> ray_direction = rotation * pixel_position;
             ray_direction.normalize();
 
-            float ray_length = fmax(get_min_time(volume_range, translation, ray_direction), 0.f);
+            // std::cout << "ray_direction: \n" << ray_direction << std::endl;
 
-            if (ray_length >= get_max_time(volume_range, translation, ray_direction))
-                return;
+            float ray_length = fmax(get_min_time(volume_range, translation, ray_direction), 0.f);
+            // std::cout << "ray_length / get_min_time: " << ray_length << std::endl;
+            float max_time = get_max_time(volume_range, translation, ray_direction);
+            // std::cout << "get_max_time: " << max_time << std::endl;
+
+            if (ray_length >= max_time){
+                // std::cout << "ray_length >= get_max_time" << std::endl;
+                continue;
+            }
             
             ray_length += voxel_scale;
             Eigen::Matrix<float, 3, 1, Eigen::DontAlign> grid = (translation + (ray_direction * ray_length)) / voxel_scale;
+            // std::cout << "grid: " << grid << std::endl;
 
             float tsdf = static_cast<float>(tsdf_volume.at<cv::Vec<short, 2>>(
                 (static_cast<int>(std::floor(grid(2)) * volume_size[1] + std::floor(grid(1)))),
                 (static_cast<int>(std::floor(grid(0)))))[0]) * DIVSHORTMAX;
+
+            // std::cout << "tsdf: " << tsdf << std::endl;
             
             //TODO: why not sqrt(3) * volume_range[0]?
             const float max_search_length = ray_length + volume_range[0] * sqrt(2.f);
@@ -266,7 +302,6 @@ void raycast_tsdf_kernel(
                                 location_in_grid_int.y()),(location_in_grid_int.x()));
                     
                     break;
-            
                 }
             }
         }
@@ -299,5 +334,5 @@ void surface_prediction(
         truncation_distance,                
         pose.block(0, 0, 3, 3),             // rotation matrix
         pose.block(0, 3, 3, 1));            // translation vector
-
+    std::cout << ">> 4.* raycast_tsdf_kernel done" << std::endl;
 }

@@ -36,10 +36,8 @@ bool pose_estimation(Eigen::Matrix4f& pose,
             std::cout << "ICP after estimate step" << std::endl;
 
             // print matrix A and b
-            std::cout << "A: " << std::endl;
-            std::cout << A << std::endl;
-            std::cout << "b: " << std::endl;
-            std::cout << b << std::endl;
+            std::cout << "A: \n" << A << std::endl;
+            std::cout << "b: \n" << b << std::endl;
 
             // Solve equation to get alpha, beta and gamma
             double det = A.determinant();

@@ -64,7 +64,7 @@ public:
         // Depth images are scaled by 5000
         dImage = cv::imread(m_baseDir + m_filenameDepthImages[m_currentIdx], cv::IMREAD_UNCHANGED);
 
-		dImage /= 5000.0f;
+		dImage /= 5.0f;
 
 		return true;
 	}
