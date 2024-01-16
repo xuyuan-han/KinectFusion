@@ -97,8 +97,9 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         configuration.bfilter_spatial_sigma);
     frame_data.color_pyramid[0] = color_map;
 
-    std::cout << "Surface measurement done" << std::endl;
     std::cout << "Pose before ICP: " << current_pose << std::endl;
+    std::cout << ">>> 1 Surface measurement done" << std::endl;
+
     bool icp_success { true };
     if (frame_id > 0) { // Do not perform ICP for the very first frame
         icp_success = pose_estimation(
@@ -115,7 +116,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         return false;
     poses.push_back(current_pose);
 
-    std::cout << "Pose estimation done" << std::endl;
+    std::cout << ">>> 2 Pose estimation done" << std::endl;
 
     Surface_Reconstruction::integrate(
         frame_data.depth_pyramid[0],
@@ -125,9 +126,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         configuration.truncation_distance,
         current_pose);
 
-    
-    std::cout << "Surface reconstruction done" << std::endl;
-
+    std::cout << ">>> 3 Surface reconstruction done" << std::endl;
 
     volumedata.tsdf_volume = volume.getVolume();
     volumedata.color_volume = volume.getColorVolume();
@@ -146,9 +145,11 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
             configuration.truncation_distance,
             current_pose);
     
-    std::cout << "Surface prediction done" << std::endl;
+    std::cout << ">>> 4 Surface prediction done" << std::endl;
 
-    last_model_frame = model_data.color_pyramid[0];
+    last_model_color_frame = model_data.color_pyramid[0];
+    last_model_vertex_frame = model_data.vertex_pyramid[0];
+    last_model_normal_frame = model_data.normal_pyramid[0];
     ++frame_id;
     return true;
 }
@@ -160,7 +161,17 @@ std::vector<Eigen::Matrix4f> Pipeline::get_poses() const
     return poses;
 }
 
-cv::Mat Pipeline::get_last_model_frame() const
+cv::Mat Pipeline::get_last_model_color_frame() const
 {
-    return last_model_frame;
+    return last_model_color_frame;
+}
+
+cv::Mat Pipeline::get_last_model_vertex_frame() const
+{
+    return last_model_vertex_frame;
+}
+
+cv::Mat Pipeline::get_last_model_normal_frame() const
+{
+    return last_model_normal_frame;
 }
