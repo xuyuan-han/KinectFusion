@@ -11,12 +11,14 @@ void Surface_Reconstruction::integrate(cv::Mat depth, cv::Mat colorMap, Volume* 
 	int width= camera_parameters.image_width;
 	int height= camera_parameters.image_height;
 	
-	Eigen:: Matrix3d R= worldToCamera.block<3,3>(0,0).cast<double>();
-	Eigen:: Vector3d t= worldToCamera.block<3,1>(0,3).cast<double>();
+	Eigen:: Matrix3d R= cameraToWorld.block<3,3>(0,0).cast<double>();
+	Eigen::Vector3d t= cameraToWorld.block<3,1>(0,3).cast<double>();
 
 
 	// Convert depth map to float *
 	float* depth_map = depth.ptr<float>();
+
+
 	// Dummy class map for now
 	uint * class_map = new uint[width * height];
 
@@ -46,7 +48,7 @@ void Surface_Reconstruction::integrate(cv::Mat depth, cv::Mat colorMap, Volume* 
 					{
 						//Calculate Lambda
 						double lambda = getLambda(pixel, intrinsics);
-						double sdf = (-1.f) * (1.0f / lambda * cameraPointNonHomogenous.norm() - depth);
+						double sdf = (-1.f) * ((1.0f / lambda) * cameraPointNonHomogenous.norm() - depth);
 						if (sdf >= -trancutionDistance)
 						{
 							float weight = 1.0f;
@@ -68,9 +70,14 @@ void Surface_Reconstruction::integrate(cv::Mat depth, cv::Mat colorMap, Volume* 
 							}
 							Vector4uc oldColor = vol->getVoxel(x, y, z).color;
 							Vector4uc color = Vector4uc();
-							color[0] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[0];
-							color[1] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[1];
-							color[2] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[2];
+							//color[0] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[0];
+							//color[1] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[1];
+							//color[2] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[2];
+							// for now just use the color of the voxel
+							color[0] = 255;
+							color[1] = 255;
+							color[2] = 255;
+
 
 							color[3] = 255;
 							Voxel newVoxel = Voxel();

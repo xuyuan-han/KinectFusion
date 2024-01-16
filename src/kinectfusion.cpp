@@ -16,6 +16,69 @@ Pipeline::Pipeline(const CameraParameters _camera_parameters,
     current_pose(1, 3) = _configuration.volume_size[1] / 2 * _configuration.voxel_scale;
     current_pose(2, 3) = _configuration.volume_size[2] / 2 * _configuration.voxel_scale - _configuration.init_depth;
 }
+struct Point {
+    float x, y, z;
+    uint8_t r, g, b; // Color
+};
+void createAndSavePointCloud(const cv::Mat& tsdfMatrix, const std::string& outputFilename) {
+    std::ofstream plyFile(outputFilename);
+
+    if (!plyFile.is_open()) {
+        std::cerr << "Unable to open file: " << outputFilename << std::endl;
+        return;
+    }
+
+    // Write to something temporary and then copy to the final file
+    // This is done to update the number of vertices in the header
+    std::ofstream tempFile("temp.ply");
+    // Keep track of the number of vertices
+    int numVertices = 0;
+
+    for (int i = 0; i < tsdfMatrix.rows; ++i) {
+        for (int j = 0; j < tsdfMatrix.cols; ++j) {
+            // Extract TSDF and weight values
+            float tsdfValue = tsdfMatrix.at<cv::Vec2f>(i, j)[0];
+            float weightValue = tsdfMatrix.at<cv::Vec2f>(i, j)[1];
+
+            if (abs(tsdfValue) > 0.02f || tsdfValue == 0) {
+                // Skip invalid TSDF values
+                continue;
+            }
+
+            Point point;
+
+            // Set point coordinates
+            point.x = static_cast<float>(j);
+            point.y = static_cast<float>(i);
+            point.z = static_cast<float>(numVertices); // You may need to adjust this based on your requirements
+
+            // Set point color based on TSDF value
+            // Green for negative TSDF
+            point.r = 0;
+            point.g = 255;
+            point.b = 0;
+
+            // Write point
+            tempFile << point.x << " " << point.y << " " << point.z << " " << static_cast<int>(point.r) << " " << static_cast<int>(point.g) << " " << static_cast<int>(point.b) << "\n";
+
+            // Increment the number of vertices
+            ++numVertices;
+        }
+    }
+
+    // Copy the temporary file to the final file and update the header
+    tempFile.close();
+    tempFile.open("temp.ply", std::ios::in);
+    plyFile << "ply\nformat ascii 1.0\n";
+    plyFile << "element vertex " << numVertices << "\n";
+    plyFile << "property float x\nproperty float y\nproperty float z\nproperty uchar red\nproperty uchar green\nproperty uchar blue\n";
+    plyFile << "end_header\n";
+    plyFile << tempFile.rdbuf();
+
+    // Close and remove the temporary file
+    tempFile.close();
+    std::remove("temp.ply");
+}
 
 bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map)
 {
@@ -57,10 +120,17 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         configuration.truncation_distance,
         current_pose);
 
+    
     std::cout << "Surface reconstruction done" << std::endl;
+
 
     volumedata.tsdf_volume = volume.getVolume();
     volumedata.color_volume = volume.getColorVolume();
+
+    createAndSavePointCloud(volumedata.tsdf_volume, "pointcloud.ply");
+
+    std::cout << "Point cloud generated" << std::endl;
+
     for (int level = 0; level < configuration.num_levels; ++level)
         surface_prediction(
             volumedata,
