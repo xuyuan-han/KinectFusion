@@ -37,10 +37,13 @@ void createAndSavePointCloud(const cv::Mat& tsdfMatrix, const std::string& outpu
     int dy = volume_size[1];
     int dz = volume_size[2];
 
+    const float tsdf_min = -25.0f; // Minimum TSDF value
+    const float tsdf_max = 25.0f;  // Maximum TSDF value
+
     for (int i = 0; i < dx; ++i) {
         for (int j = 0; j < dy; ++j) {
             for (int k = 0; k < dz; ++k) {
-                // Get TSDF value
+                // Retrieve the TSDF value
                 short tsdfValue = tsdfMatrix.at<short>(j * dz + k, i, 0);
 
                 if (abs(tsdfValue) > 25 || tsdfValue == 0) {
@@ -48,24 +51,26 @@ void createAndSavePointCloud(const cv::Mat& tsdfMatrix, const std::string& outpu
                     continue;
                 }
 
-                Point point;
+                // Normalize the TSDF value to a 0-1 range
+                float normalized_tsdf = (tsdfValue - tsdf_min) / (tsdf_max - tsdf_min);
 
-                // Set point coordinates
+                Point point;
                 point.x = i;
                 point.y = j;
                 point.z = k;
 
+                // Interpolate between green (low TSDF) and magenta (high TSDF) based on normalized_tsdf
+                point.r = static_cast<unsigned char>(normalized_tsdf * 255); // Magenta component increases with TSDF
+                point.g = static_cast<unsigned char>((1.0f - normalized_tsdf) * 255); // Green component decreases with TSDF
+                point.b = static_cast<unsigned char>(normalized_tsdf * 255); // Magenta component increases with TSDF
 
-                // Set point color based on TSDF value
-                // Green for negative TSDF
-                point.r = 0;
-                point.g = 255;
-                point.b = 0;
+                // Write the point
+                tempFile << point.x << " " << point.y << " " << point.z << " "
+                        << static_cast<int>(point.r) << " "
+                        << static_cast<int>(point.g) << " "
+                        << static_cast<int>(point.b) << "\n";
 
-                // Write point
-                tempFile << point.x << " " << point.y << " " << point.z << " " << static_cast<int>(point.r) << " " << static_cast<int>(point.g) << " " << static_cast<int>(point.b) << "\n";
-
-                // Increment the number of vertices
+                // Increment the vertex count
                 ++numVertices;
             }
         }
@@ -147,13 +152,6 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     std::cout << ">> 4 Surface prediction begin" << std::endl;
 
-    // for (int level = 0; level < configuration.num_levels; ++level){
-    //     cv::imshow("vertex"+std::to_string(level), model_data.vertex_pyramid[level]);
-    //     cv::imshow("normal"+std::to_string(level), model_data.normal_pyramid[level]);
-    //     cv::imshow("color"+std::to_string(level), model_data.color_pyramid[level]);
-    // }
-    // cv::waitKey(0);
-
     for (int level = 0; level < configuration.num_levels; ++level){
         std::cout << ">> 4 (level)" << level << " Surface prediction begin" << std::endl;
         surface_prediction(
@@ -167,13 +165,6 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         std::cout << ">> 4 (level)" << level << " Surface prediction done" << std::endl;
     }
 
-    // for (int level = 0; level < configuration.num_levels; ++level){
-    //     cv::imshow("vertex"+std::to_string(level), model_data.vertex_pyramid[level]);
-    //     cv::imshow("normal"+std::to_string(level), model_data.normal_pyramid[level]);
-    //     cv::imshow("color"+std::to_string(level), model_data.color_pyramid[level]);
-    // }
-    // cv::waitKey(0);
-    
     std::cout << ">>> 4 Surface prediction done" << std::endl;
     std::cout << "-----------------------------------" << std::endl;
 

@@ -64,6 +64,6 @@ int main(int argc, char **argv)
         cv::imwrite(filenameOut + "PipelineOutputVertex_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", pipeline.get_last_model_vertex_frame());
         cv::imwrite(filenameOut + "PipelineOutputNormal_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", pipeline.get_last_model_normal_frame());
 
-        cv::waitKey(500);
+        cv::waitKey(0);
     }
 }
