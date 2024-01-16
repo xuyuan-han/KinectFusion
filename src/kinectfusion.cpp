@@ -20,7 +20,7 @@ struct Point {
     float x, y, z;
     uint8_t r, g, b; // Color
 };
-void createAndSavePointCloud(const cv::Mat& tsdfMatrix, const std::string& outputFilename) {
+void createAndSavePointCloud(const cv::Mat& tsdfMatrix, const std::string& outputFilename, Eigen::Vector3i volume_size) {
     std::ofstream plyFile(outputFilename);
 
     if (!plyFile.is_open()) {
@@ -33,36 +33,41 @@ void createAndSavePointCloud(const cv::Mat& tsdfMatrix, const std::string& outpu
     std::ofstream tempFile("temp.ply");
     // Keep track of the number of vertices
     int numVertices = 0;
+    int dx = volume_size[0];
+    int dy = volume_size[1];
+    int dz = volume_size[2];
 
-    for (int i = 0; i < tsdfMatrix.rows; ++i) {
-        for (int j = 0; j < tsdfMatrix.cols; ++j) {
-            // Extract TSDF and weight values
-            float tsdfValue = tsdfMatrix.at<cv::Vec2f>(i, j)[0];
-            float weightValue = tsdfMatrix.at<cv::Vec2f>(i, j)[1];
+    for (int i = 0; i < dx; ++i) {
+        for (int j = 0; j < dy; ++j) {
+            for (int k = 0; k < dz; ++k) {
+                // Get TSDF value
+                short tsdfValue = tsdfMatrix.at<short>(j * dz + k, i, 0);
 
-            if (abs(tsdfValue) > 0.02f || tsdfValue == 0) {
-                // Skip invalid TSDF values
-                continue;
+                if (abs(tsdfValue) > 25 || tsdfValue == 0) {
+                    // Skip invalid TSDF values
+                    continue;
+                }
+
+                Point point;
+
+                // Set point coordinates
+                point.x = i;
+                point.y = j;
+                point.z = k;
+
+
+                // Set point color based on TSDF value
+                // Green for negative TSDF
+                point.r = 0;
+                point.g = 255;
+                point.b = 0;
+
+                // Write point
+                tempFile << point.x << " " << point.y << " " << point.z << " " << static_cast<int>(point.r) << " " << static_cast<int>(point.g) << " " << static_cast<int>(point.b) << "\n";
+
+                // Increment the number of vertices
+                ++numVertices;
             }
-
-            Point point;
-
-            // Set point coordinates
-            point.x = static_cast<float>(j);
-            point.y = static_cast<float>(i);
-            point.z = static_cast<float>(numVertices); // You may need to adjust this based on your requirements
-
-            // Set point color based on TSDF value
-            // Green for negative TSDF
-            point.r = 0;
-            point.g = 255;
-            point.b = 0;
-
-            // Write point
-            tempFile << point.x << " " << point.y << " " << point.z << " " << static_cast<int>(point.r) << " " << static_cast<int>(point.g) << " " << static_cast<int>(point.b) << "\n";
-
-            // Increment the number of vertices
-            ++numVertices;
         }
     }
 
@@ -93,7 +98,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     frame_data.color_pyramid[0] = color_map;
 
     std::cout << "Surface measurement done" << std::endl;
-
+    std::cout << "Pose before ICP: " << current_pose << std::endl;
     bool icp_success { true };
     if (frame_id > 0) { // Do not perform ICP for the very first frame
         icp_success = pose_estimation(
@@ -127,7 +132,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     volumedata.tsdf_volume = volume.getVolume();
     volumedata.color_volume = volume.getColorVolume();
 
-    createAndSavePointCloud(volumedata.tsdf_volume, "pointcloud.ply");
+    createAndSavePointCloud(volumedata.tsdf_volume, "pointcloud.ply", configuration.volume_size);
 
     std::cout << "Point cloud generated" << std::endl;
 

@@ -33,7 +33,7 @@ void Surface_Reconstruction::integrate(cv::Mat depth, cv::Mat colorMap, Volume* 
 				// To Homogeneous coordinates
 				Eigen::Vector4f worldPointH = Eigen::Vector4f(worldPoint[0], worldPoint[1], worldPoint[2], 1);
 				// To camera frame coordinates
-				Eigen::Vector4f cameraPointH = worldToCamera * worldPointH;
+				Eigen::Vector4f cameraPointH = cameraToWorld * worldPointH;
 				// Non Homogeneous coordinates
 				Eigen::Vector3f cameraPointNonHomogenous = Eigen::Vector3f(cameraPointH[0] / cameraPointH[3], cameraPointH[1] / cameraPointH[3], cameraPointH[2] / cameraPointH[3]);
 				// To Sensor coordinates by projection
@@ -49,6 +49,7 @@ void Surface_Reconstruction::integrate(cv::Mat depth, cv::Mat colorMap, Volume* 
 						//Calculate Lambda
 						double lambda = getLambda(pixel, intrinsics);
 						double sdf = (-1.f) * ((1.0f / lambda) * cameraPointNonHomogenous.norm() - depth);
+
 						if (sdf >= -trancutionDistance)
 						{
 							float weight = 1.0f;
