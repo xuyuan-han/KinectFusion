@@ -17,9 +17,11 @@ void Surface_Reconstruction::integrate(Volume* vol, Frame frame, float truncatio
 			{
 				// Indices to world coordinates
 				Eigen::Vector3d worldPoint = vol->pos(x, y, z);
-				// To camera frame coordinates
-				Eigen::Vector3f cameraPointReal = R.cast<float>() * worldPoint.cast<float>() - t.cast<float>();
+				
 
+				// To camera frame coordinates
+				Eigen::Vector3f cameraPointReal = cameraToWorld.block<3, 3>(0, 0).cast<float>() * worldPoint.cast<float>() + cameraToWorld.block<3, 1>(0, 3).cast<float>();
+				
 				Eigen::Vector4f cameraPointH = Eigen::Vector4f(cameraPointReal[0], cameraPointReal[1], cameraPointReal[2], 1.0f);
 				// Non Homogeneous coordinates
 				Eigen::Vector3f cameraPointNonHomogenous = Eigen::Vector3f(cameraPointH[0] / cameraPointH[3], cameraPointH[1] / cameraPointH[3], cameraPointH[2] / cameraPointH[3]);
@@ -28,17 +30,13 @@ void Surface_Reconstruction::integrate(Volume* vol, Frame frame, float truncatio
 				// To pixel coordinates
 				Eigen::Vector2i pixel = Eigen::Vector2i((int)round(cameraPoint[0] / cameraPoint[2]), (int)round(cameraPoint[1] / cameraPoint[2]));
 
-
 				if (pixel[0] >= 0 && pixel[0] < width && pixel[1] >= 0 && pixel[1] < height)
 				{
-					printf("pixel: %d %d\n", pixel[0], pixel[1]);
-					printf("cameraPointNonHomogenous: %f %f %f\n", cameraPointNonHomogenous[0], cameraPointNonHomogenous[1], cameraPointNonHomogenous[2]);
-
-					
 
 					float depth = frame.depth_map[pixel[1] * width + pixel[0]];
 					if (depth > 0)
 					{
+
 						//Calculate Lambda
 						double lambda = getLambda(pixel, intrinsics);
 						double sdf = (-1.f) * ((1.0f / lambda) * cameraPointNonHomogenous.norm() - depth);
@@ -51,7 +49,6 @@ void Surface_Reconstruction::integrate(Volume* vol, Frame frame, float truncatio
 
 							float newSdf = (oldSdf * oldWeight + sdf * weight) / (oldWeight + weight);
 							float newWeight = oldWeight + weight;
-
 							uint newClass = frame.class_map[pixel[1] * width + pixel[0]];
 
 							if (newClass != oldClass)

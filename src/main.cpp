@@ -2,6 +2,99 @@
 #include <iostream>
 #define M_PI 3.14159265358979323846
 
+
+bool notintersectCube(const Eigen::Vector3d& cube_center, float cube_side, const Eigen::Vector3f& ray_origin, const Eigen::Vector3f& ray_direction, float& t) {
+    // Compute half extents along each axis
+    Eigen::Vector3d cube_min = cube_center - Eigen::Vector3d(cube_side / 2, cube_side / 2, cube_side / 2);
+    Eigen::Vector3d cube_max = cube_center + Eigen::Vector3d(cube_side / 2, cube_side / 2, cube_side / 2);
+
+    // Compute the intersection of the ray with the cube
+    double tmin, tmax, tymin, tymax, tzmin, tzmax;
+
+    // Calculate inverse direction components
+    Eigen::Vector3d ray_direction_inv = Eigen::Vector3d(1.0f / ray_direction[0], 1.0f / ray_direction[1], 1.0f / ray_direction[2]);
+
+    // X slab
+    tmin = (cube_min[0] - ray_origin[0]) * ray_direction_inv[0];
+    tmax = (cube_max[0] - ray_origin[0]) * ray_direction_inv[0];
+
+    // Y slab
+    tymin = (cube_min[1] - ray_origin[1]) * ray_direction_inv[1];
+    tymax = (cube_max[1] - ray_origin[1]) * ray_direction_inv[1];
+
+    if ((tmin > tymax) || (tymin > tmax)) {
+        return false;
+    }
+
+    if (tymin > tmin) {
+        tmin = tymin;
+    }
+
+    if (tymax < tmax) {
+        tmax = tymax;
+    }
+
+    // Z slab
+    tzmin = (cube_min[2] - ray_origin[2]) * ray_direction_inv[2];
+    tzmax = (cube_max[2] - ray_origin[2]) * ray_direction_inv[2];
+
+    if ((tmin > tzmax) || (tzmin > tmax)) {
+        return false;
+    }
+
+    if (tzmin > tmin) {
+        tmin = tzmin;
+    }
+
+    if (tzmax < tmax) {
+        tmax = tzmax;
+    }
+
+    // The ray intersects the cube if tmin is less than or equal to tmax
+    // and tmax is greater than or equal to 0
+    return (tmin <= tmax && tmax >= 0);
+}
+#include <Eigen/Dense>
+
+bool intersectCube(const Eigen::Vector3d& cube_center, float cube_side, const Eigen::Vector3f& ray_origin, const Eigen::Vector3f& ray_direction, float& t) {
+    // Compute half extents along each axis
+    Eigen::Vector3d cube_min = cube_center - Eigen::Vector3d(cube_side / 2, cube_side / 2, cube_side / 2);
+    Eigen::Vector3d cube_max = cube_center + Eigen::Vector3d(cube_side / 2, cube_side / 2, cube_side / 2);
+
+    // Initialize t to a very large value
+    t = std::numeric_limits<float>::max();
+
+    // Check each face of the cube
+    for (int i = 0; i < 3; ++i) {
+        // Check min face
+        float t_min = (cube_min[i] - ray_origin[i]) / ray_direction[i];
+        if (t_min < t) {
+            Eigen::Vector3f intersection_point = ray_origin + t_min * ray_direction;
+            if (intersection_point[0] >= cube_min[0] && intersection_point[0] <= cube_max[0] &&
+                intersection_point[1] >= cube_min[1] && intersection_point[1] <= cube_max[1] &&
+                intersection_point[2] >= cube_min[2] && intersection_point[2] <= cube_max[2]) {
+                t = t_min;
+            }
+        }
+
+        // Check max face
+        float t_max = (cube_max[i] - ray_origin[i]) / ray_direction[i];
+        if (t_max < t) {
+            Eigen::Vector3f intersection_point = ray_origin + t_max * ray_direction;
+            if (intersection_point[0] >= cube_min[0] && intersection_point[0] <= cube_max[0] &&
+                intersection_point[1] >= cube_min[1] && intersection_point[1] <= cube_max[1] &&
+                intersection_point[2] >= cube_min[2] && intersection_point[2] <= cube_max[2]) {
+                t = t_max;
+            }
+        }
+    }
+
+    // Check if the ray intersects the cube
+    bool hit = t < std::numeric_limits<float>::max();
+
+    return hit;
+}
+
 struct Point {
     float x, y, z;
     uint8_t r, g, b; // Color
@@ -15,17 +108,11 @@ void createAndSavePointCloud(const cv::Mat& tsdfMatrix, const std::string& outpu
         return;
     }
 
-    // PLY header
-    plyFile << "ply\n";
-    plyFile << "format ascii 1.0\n";
-    plyFile << "element vertex " << tsdfMatrix.total() << "\n";
-    plyFile << "property float x\n";
-    plyFile << "property float y\n";
-    plyFile << "property float z\n";
-    plyFile << "property uchar red\n";
-    plyFile << "property uchar green\n";
-    plyFile << "property uchar blue\n";
-    plyFile << "end_header\n";
+    // Write to something temprary and then copy to the final file
+    // This is done to update the number of vertices in the header
+    std::ofstream tempFile("temp.ply");
+    // Keep track of the number of vertices
+    int numVertices = 0;
 
     for (int x = 0; x < tsdfMatrix.size[0]; ++x) {
         for (int y = 0; y < tsdfMatrix.size[1]; ++y) {
@@ -34,6 +121,10 @@ void createAndSavePointCloud(const cv::Mat& tsdfMatrix, const std::string& outpu
 
                 // Extract TSDF value
                 float tsdfValue = tsdfMatrix.at<float>(x, y, z);
+                if (abs(tsdfValue) > 0.02f || tsdfValue == 0) {
+                    // Skip TSDF value if it is invalid
+                    continue;
+                }
 
                 // Set point coordinates
                 point.x = static_cast<float>(x);
@@ -41,28 +132,49 @@ void createAndSavePointCloud(const cv::Mat& tsdfMatrix, const std::string& outpu
                 point.z = static_cast<float>(z);
 
                 // Set point color based on TSDF value
-                if (tsdfValue < 0.01) {
-                    // Green for negative TSDF
+                  // Green for negative TSDF
                     point.r = 0;
                     point.g = 255;
                     point.b = 0;
-                }
-                else {
-                    // White for positive TSDF
-                    point.r = 255;
-                    point.g = 255;
-                    point.b = 255;
-                }
+                
+       
 
-                // Write point to PLY file
-                plyFile << point.x << " " << point.y << " " << point.z << " "
-                    << static_cast<int>(point.r) << " " << static_cast<int>(point.g) << " " << static_cast<int>(point.b) << "\n";
+                // Write point
+                tempFile << point.x << " " << point.y << " " << point.z << " " << static_cast<int>(point.r) << " " << static_cast<int>(point.g) << " " << static_cast<int>(point.b) << "\n";
+                
+
+                // Increment the number of vertices
+                ++numVertices;
             }
         }
     }
 
+    // Close the temporary file
+    tempFile.close();
+    
+    // Write the header to the final file
+    plyFile << "ply\n";
+    plyFile << "format ascii 1.0\n";
+    plyFile << "element vertex " << numVertices << "\n";
+    plyFile << "property float x\n";
+    plyFile << "property float y\n";
+    plyFile << "property float z\n";
+    plyFile << "property uchar red\n";
+    plyFile << "property uchar green\n";
+    plyFile << "property uchar blue\n";
+    plyFile << "end_header\n";
+
+    // Copy the contents of the temporary file to the final file
+    std::ifstream tempFileRead("temp.ply");
+    plyFile << tempFileRead.rdbuf();
+    tempFileRead.close();
+
+    // Close the PLY file
+    plyFile.close();
+
     std::cout << "Point cloud saved to " << outputFilename << std::endl;
 }
+
 
 
 
@@ -89,27 +201,34 @@ Frame createCubeDepthMap(const Eigen::Matrix3f& intrinsics, const Eigen::Matrix4
             // Convert pixel coordinates to camera coordinates
             Eigen::Vector3f cameraDirection = (intrinsicsInv * Eigen::Vector3f(x, y, 1.0f)).normalized();
 
+            cameraDirection[1] = -cameraDirection[1];
+     
             // Convert direction to world coordinates
             Eigen::Vector3f worldDirection = worldToCamera.block<3, 3>(0, 0) * cameraDirection;
 
+
             // Flip the direction since the camera is looking in the negative z-direction
-            worldDirection = -worldDirection;
+            worldDirection = worldDirection.normalized();
+            //std::cout << "worldDirection: " << worldDirection << std::endl;
+            //std::cout << "worldToCamera.block<3, 1>(0, 3): " << worldToCamera.block<3, 1>(0, 3) << std::endl;
 
-            // Calculate depth as the distance to the cube
-            float depth = (cube_center.cast<float>() - worldToCamera.block<3, 1>(0, 3)).dot(worldDirection);
+            // Find intersection point with the cube
+           
+            float t;
+            bool hit = intersectCube(cube_center, cube_side, worldToCamera.block<3, 1>(0, 3), worldDirection, t);
+           
+            if (hit) {
+                // Calculate depth as the distance to the intersection point
+                float depth = t;
+                
+                // We knwo have the depth along the ray, but we need to find the orthogonal distance to the camera
+                // We can do this by projecting the intersection point onto the optical axis
+                Eigen::Vector3f opticalAxis = Eigen::Vector3f(0.0f, 0.0f, 1.0f);
+                opticalAxis = worldToCamera.block<3, 3>(0, 0) * opticalAxis;
+
+                depth = (depth * worldDirection).dot(opticalAxis);
 
 
-            // Check if the point is inside the cube
-            Eigen::Vector3d cube_min = cube_center - Eigen::Vector3d(cube_side / 2, cube_side / 2, cube_side / 2);
-            Eigen::Vector3d cube_max = cube_center + Eigen::Vector3d(cube_side / 2, cube_side / 2, cube_side / 2);
-            
-            Eigen::Vector3f worldPoint = worldToCamera.block<3, 1>(0, 3) + depth * worldDirection;
-
-            if (depth > 0 &&
-                (worldPoint[0] >= cube_min[0] && worldPoint[0] <= cube_max[0]) &&
-                (worldPoint[1] >= cube_min[1] && worldPoint[1] <= cube_max[1]) &&
-                (worldPoint[2] >= cube_min[2] && worldPoint[2] <= cube_max[2])) {
-               printf("Depth: %f\n", depth);    
                 // Set depth value to the distance from the camera
                 syntheticFrame.depth_map[y * width + x] = depth;
 
@@ -120,7 +239,7 @@ Frame createCubeDepthMap(const Eigen::Matrix3f& intrinsics, const Eigen::Matrix4
             }
             else {
                 // Set invalid depth
-                syntheticFrame.depth_map[y * width + x] = -1.0f;
+                syntheticFrame.depth_map[y * width + x] = -1;
             }
 
             syntheticFrame.class_map[y * width + x] = 0;
@@ -157,9 +276,11 @@ Frame createCuboidDepthMap(const Eigen::Matrix3f& intrinsics, const Eigen::Matri
 			// Convert direction to world coordinates
 			Eigen::Vector3f worldDirection = worldToCamera.block<3, 3>(0, 0) * cameraDirection;
             
-            worldDirection = -worldDirection;
+            worldDirection = -worldDirection.normalized();
 			// Calculate depth as the distance to the cubiod
             float depth = (cube_center.cast<float>() - worldToCamera.block<3, 1>(0, 3)).dot(worldDirection);
+
+   
 
             // Check if the point is inside the cuboid
             Eigen::Vector3d cuboid_min = cube_center - Eigen::Vector3d(cube_side, cube_side / 2, cube_side / 2);
@@ -196,7 +317,7 @@ int main(int argc, char** argv)
     int width = 640;
     int height = 480;
     Eigen::Matrix3f intrinsics;
-    float focal_length = 500; // adjust as needed
+    float focal_length = 300; // adjust as needed
     float principal_point_x = width / 2.0f; // assuming the principal point is at the center
     float principal_point_y = height / 2.0f; // assuming the principal point is at the center
 
@@ -204,36 +325,39 @@ int main(int argc, char** argv)
         0, focal_length, principal_point_y,
         0, 0, 1;
 
-    float cube_side = 1.0f; // 50 cm
+    float cube_side = 1.0f; // 0 cm
     Eigen::Vector3d cube_center(0.0, 0.0, 0.0);
 
     // Setup  Volume(Eigen::Vector3d min_, Eigen::Vector3d max_, uint dx_, uint dy_, uint dz_, uint dim)
     unsigned int mc_res = 100; // resolution of the grid, for debugging you can reduce the resolution (-> faster)
-    Volume vol(Eigen::Vector3d(-2, -2, -2), Eigen::Vector3d(2, 2, 2), mc_res, mc_res, mc_res, 1);
+    Volume vol(Eigen::Vector3d(-1, -1, -1), Eigen::Vector3d(1, 1, 1), mc_res, mc_res, mc_res, 1);
 
-    int num_views = 20;
+
+    int num_views = 4;
     // Loop to generate depth maps in a circular trajectory
     for (int view = 0; view < num_views; ++view) {
 
-        //Save the volume to disk as a point cloud with the name point_cloud_0.ply, point_cloud_1.ply, etc.
-        createAndSavePointCloud(vol.getVolume(), "point_cloud_" + std::to_string(view) + ".ply");
+        
 
         // Calculate angle for this view
         float angle_rad = 2.0f * M_PI * view / num_views;
 
         // Set up camera extrinsic matrix for a circular trajectory with translation in the x-axis
         Eigen::Matrix4f extrinsics = Eigen::Matrix4f::Identity();
-        extrinsics(0, 3) = 1* cos(angle_rad);  // x-coordinate
-        extrinsics(1, 3) = 1* sin(angle_rad);  // y-coordinate
+        extrinsics(0, 3) = 3* cos(angle_rad);  // x-coordinate
+        extrinsics(1, 3) = 3* sin(angle_rad);  // y-coordinate
         extrinsics(2, 3) = 0.0f;                    // z-coordinate
 
         // Calculate the orientation of the camera to always look at the center of the cube
         Eigen::Vector3f cameraPosition = extrinsics.block<3, 1>(0, 3);
         Eigen::Vector3f cubeCenter = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
-        Eigen::Vector3f cameraDirection = -(cubeCenter -cameraPosition).normalized();
+        Eigen::Vector3f cameraDirection = (cubeCenter - cameraPosition).normalized();
         Eigen::Vector3f up = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
-        Eigen::Vector3f right = up.cross(cameraDirection).normalized();
-        up = cameraDirection.cross(right).normalized();
+
+        // Make up vector orthogonal to camera direction
+        // Corrected cross product order
+        Eigen::Vector3f right = cameraDirection.cross(up).normalized();
+        up = right.cross(cameraDirection).normalized();
         extrinsics.block<3, 1>(0, 0) = right;
         extrinsics.block<3, 1>(0, 1) = up;
         extrinsics.block<3, 1>(0, 2) = cameraDirection;
@@ -241,22 +365,24 @@ int main(int argc, char** argv)
         // Create a synthetic depth map for the cube from this camera pose
         Frame syntheticFrame = createCubeDepthMap(intrinsics, extrinsics, width, height, cube_side, Eigen::Vector3d::Zero());
 
-        
-        Surface_Reconstruction::integrate(&vol, syntheticFrame, 5.0f);
-
-
-
         //! Save the depth map to disk using OpenCV
-        cv::Mat depthMap(height, width, CV_32FC1, syntheticFrame.depth_map);
-        double minVal, maxVal;
-        cv::minMaxLoc(depthMap, &minVal, &maxVal);
-        cv::Mat scaledDepthMap;
-        depthMap.convertTo(scaledDepthMap, CV_8UC1, 255.0 / (maxVal - minVal), -minVal * 255.0 / (maxVal - minVal));
-        std::string filename = "depth_map_" + std::to_string(view) + ".png";
-        cv::imwrite(filename, scaledDepthMap);
+       cv::Mat depthMap(height, width, CV_32FC1, syntheticFrame.depth_map);
+       double minVal, maxVal;
+       cv::minMaxLoc(depthMap, &minVal, &maxVal);
+       cv::Mat scaledDepthMap;
+       depthMap.convertTo(scaledDepthMap, CV_8UC1, 255.0 / (maxVal - minVal), -minVal * 255.0 / (maxVal - minVal));
+       std::string filename = "depth_map_" + std::to_string(view) + ".png";
+       cv::imwrite(filename, scaledDepthMap);
+
+        Surface_Reconstruction::integrate(&vol, syntheticFrame, 0.02f);
+    
+        //Save the volume to disk as a point cloud with the name point_cloud_0.ply, point_cloud_1.ply, etc.
+        createAndSavePointCloud(vol.getVolume(), "point_cloud_" + std::to_string(view) + ".ply");
     }
 
-    // ! Save the volume to disk as a point cloud
+
+    // ! Now 10 frames on yz plane
+
     
 
 
