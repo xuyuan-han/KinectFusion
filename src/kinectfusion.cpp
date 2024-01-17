@@ -94,12 +94,14 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     std::chrono::duration<double, std::milli> elapsed_transfer = end_transfer - start; // elapsed time in milliseconds
     std::cout << "-- Volumedata transfer time: " << elapsed_transfer.count() << " ms\n";
 
-    // createAndSavePointCloudVolumeData(volumedata.tsdf_volume, current_pose, "pointcloud.ply", configuration.volume_size, true);
-    // createAndSavePointCloudVolumeData_multi_threads(volumedata.tsdf_volume, current_pose, "pointcloud.ply", configuration.volume_size, true);
+    start = std::chrono::high_resolution_clock::now(); // start time measurement
 
-    // auto end_save = std::chrono::high_resolution_clock::now(); // end time measurement
-    // std::chrono::duration<double, std::milli> elapsed_save = end_save - start; // elapsed time in milliseconds
-    // std::cout << "-- Save point cloud time: " << elapsed_save.count() << " ms\n";
+    // createAndSavePointCloudVolumeData(volumedata.tsdf_volume, current_pose, "VolumeData_PointCloud.ply", configuration.volume_size, true);
+    createAndSavePointCloudVolumeData_multi_threads(volumedata.tsdf_volume, current_pose, "VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+
+    auto end_save = std::chrono::high_resolution_clock::now(); // end time measurement
+    std::chrono::duration<double, std::milli> elapsed_save = end_save - start; // elapsed time in milliseconds
+    std::cout << "-- Save point cloud time: " << elapsed_save.count() << " ms\n";
 
     std::cout << ">>> 3.5 Point cloud generation done" << std::endl;
 
@@ -382,7 +384,7 @@ void createAndSavePointCloudVolumeData(const cv::Mat& tsdfMatrix, Eigen::Matrix4
     std::remove("temp.ply");
 }
 
-void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, const float tsdf_min, const float tsdf_max, int& numVertices, bool showFaces) {
+void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, const float tsdf_min, const float tsdf_max, int& numVertices, float voxel_scale, bool showFaces) {
     std::ofstream tempFile(tempFilename);
     if (!tempFile.is_open()) {
         std::cerr << "Unable to open temporary file: " << tempFilename << std::endl;
@@ -394,9 +396,9 @@ void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::stri
             for (int k = zStart; k < zEnd; ++k) {
                 if ( (i==0 || j==0 || k==0 || i==dx-1 || j==dy-1 || k==dz-1) && showFaces && (i%4==3 && j%4==3 && k%4==3)){
                     Point point;
-                    point.x = i;
-                    point.y = j;
-                    point.z = k;
+                    point.x = (i - dx/2) * voxel_scale;
+                    point.y = (j - dy/2) * voxel_scale;
+                    point.z = (k - dz/2) * voxel_scale;
 
                     // show the faces of the volume
                     point.r = static_cast<unsigned char>(255);
@@ -431,9 +433,9 @@ void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::stri
                     float normalized_tsdf = (tsdfValue - tsdf_min) / (tsdf_max - tsdf_min);
 
                     Point point;
-                    point.x = i;
-                    point.y = j;
-                    point.z = k;
+                    point.x = (i - dx/2) * voxel_scale;
+                    point.y = (j - dy/2) * voxel_scale;
+                    point.z = (k - dz/2) * voxel_scale;
 
                     // Interpolate between magenta (low TSDF) and green (high TSDF) based on normalized_tsdf
                     point.r = static_cast<unsigned char>((1.0f - normalized_tsdf) * 255); // Magenta component decreases with TSDF
@@ -455,7 +457,7 @@ void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::stri
     tempFile.close();
 }
 
-void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, Eigen::Matrix4f current_pose, const std::string& outputFilename, Eigen::Vector3i volume_size, bool showFaces) {
+void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, Eigen::Matrix4f current_pose, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
     // Keep track of the number of vertices
     int numVertices = 0;
     int dx = volume_size[0];
@@ -476,7 +478,7 @@ void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, 
         int zStart = i * zStep;
         int zEnd = (i + 1) * zStep;
         if (i == numThreads - 1) zEnd = dz;
-        threads[i] = std::thread(savePointCloudProcessVolumeSlice, std::ref(tsdfMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, tsdf_min, tsdf_max, std::ref(numVerticesVec[i]), showFaces);
+        threads[i] = std::thread(savePointCloudProcessVolumeSlice, std::ref(tsdfMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, tsdf_min, tsdf_max, std::ref(numVerticesVec[i]), voxel_scale, showFaces);
     }
 
     for (auto& thread : threads) {
