@@ -340,5 +340,5 @@ void surface_prediction(
         truncation_distance,                
         pose.block(0, 0, 3, 3),             // rotation matrix
         pose.block(0, 3, 3, 1));            // translation vector
-    std::cout << ">> 4.* raycast_tsdf_kernel done" << std::endl;
+    // std::cout << ">> 4.* raycast_tsdf_kernel done" << std::endl;
 }

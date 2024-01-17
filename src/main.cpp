@@ -26,14 +26,13 @@ int main(int argc, char **argv)
     Pipeline pipeline {cameraparameters, configuration};
     while(sensor.processNextFrame()){
 
-        // for (int i = 0; i < sensor.getDepth().rows; ++i) {
-        //     for (int j = 0; j < 5; ++j) {
-        //         sensor.processNextFrame();
-        //     }
-        // }
-        // std::cout << sensor.getDepth() << std::endl;
+        auto start = std::chrono::high_resolution_clock::now(); // start time measurement
 
         bool success=pipeline.process_frame(sensor.getDepth(), sensor.getColorRGBX());
+
+        auto end = std::chrono::high_resolution_clock::now(); // end time measurement
+        std::chrono::duration<double, std::milli> elapsed = end - start; // elapsed time in milliseconds
+        std::cout << "-- Frame " << sensor.getCurrentFrameCnt() << " processing time: " << elapsed.count() << " ms\n";
 
         if (!success){
             std::cout << "Frame " << sensor.getCurrentFrameCnt() << " could not be processed" << std::endl;

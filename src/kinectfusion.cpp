@@ -85,18 +85,28 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     // createAndSavePointCloud(volumedata.tsdf_volume, "pointcloud.ply", configuration.volume_size);
 
+    auto start = std::chrono::high_resolution_clock::now(); // start time measurement
+
     volumedata.tsdf_volume = volume.getVolumeData();
     volumedata.color_volume = volume.getColorVolumeData();
 
+    auto end_transfer = std::chrono::high_resolution_clock::now(); // end time measurement
+    std::chrono::duration<double, std::milli> elapsed_transfer = end_transfer - start; // elapsed time in milliseconds
+    std::cout << "-- Volumedata transfer time: " << elapsed_transfer.count() << " ms\n";
+
     // createAndSavePointCloudVolumeData(volumedata.tsdf_volume, current_pose, "pointcloud.ply", configuration.volume_size, true);
-    createAndSavePointCloudVolumeData_multi_threads(volumedata.tsdf_volume, current_pose, "pointcloud.ply", configuration.volume_size, true);
+    // createAndSavePointCloudVolumeData_multi_threads(volumedata.tsdf_volume, current_pose, "pointcloud.ply", configuration.volume_size, true);
+
+    // auto end_save = std::chrono::high_resolution_clock::now(); // end time measurement
+    // std::chrono::duration<double, std::milli> elapsed_save = end_save - start; // elapsed time in milliseconds
+    // std::cout << "-- Save point cloud time: " << elapsed_save.count() << " ms\n";
 
     std::cout << ">>> 3.5 Point cloud generation done" << std::endl;
 
     std::cout << ">> 4 Surface prediction begin" << std::endl;
 
     for (int level = 0; level < configuration.num_levels; ++level){
-        std::cout << ">> 4 (level)" << level << " Surface prediction begin" << std::endl;
+        // std::cout << ">> 4 (level)" << level << " Surface prediction begin" << std::endl;
         surface_prediction(
             volumedata,
             model_data.vertex_pyramid[level],
@@ -105,7 +115,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
             camera_parameters.level(level),
             configuration.truncation_distance,
             current_pose);
-        std::cout << ">> 4 (level)" << level << " Surface prediction done" << std::endl;
+        // std::cout << ">> 4 (level)" << level << " Surface prediction done" << std::endl;
     }
 
     std::cout << ">>> 4 Surface prediction done" << std::endl;

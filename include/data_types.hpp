@@ -7,6 +7,7 @@
 #include <iostream>
 #include <cstring>
 #include <fstream>
+#include <chrono>
 #include <thread>
 
 using Vector4uc = Eigen::Matrix<unsigned char, 4, 1>;
