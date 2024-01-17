@@ -388,38 +388,38 @@ public:
 		vol[getPosFromTuple(x, y, z)] = value;
 	}
 
-	// Get volume as a 2d opencv matrix with dimensions (dy *dz, dx) and two channels (sdf, weight) 
-	cv::Mat getVolume() {
-		int sizes[3] = { static_cast<int>(dy * dz), static_cast<int>(dx), 2 };
-		cv::Mat volume = cv::Mat(3, sizes, CV_16SC1, cv::Scalar(0));
-		for (int i = 0; i < dx; i++) {
-			for (int j = 0; j < dy; j++) {
-				for (int k = 0; k < dz; k++) {
-					volume.at<short>(j * dz + k, i, 0) = vol_access(i, j, k).sdf;
-					volume.at<short>(j * dz + k, i, 1) = vol_access(i, j, k).weight;
-				}
-			}
-		}
-		return volume;
-	}
+	// // Get volume as a 2d opencv matrix with dimensions (dy *dz, dx) and two channels (sdf, weight) 
+	// cv::Mat getVolume() {
+	// 	int sizes[3] = { static_cast<int>(dy * dz), static_cast<int>(dx), 2 };
+	// 	cv::Mat volume = cv::Mat(3, sizes, CV_16SC1, cv::Scalar(0));
+	// 	for (int i = 0; i < dx; i++) {
+	// 		for (int j = 0; j < dy; j++) {
+	// 			for (int k = 0; k < dz; k++) {
+	// 				volume.at<short>(j * dz + k, i, 0) = vol_access(i, j, k).sdf;
+	// 				volume.at<short>(j * dz + k, i, 1) = vol_access(i, j, k).weight;
+	// 			}
+	// 		}
+	// 	}
+	// 	return volume;
+	// }
 	
-	// Get color Volume as a 2d opencv matrix with dimensions (dy *dz, dx) and three channels (r, g, b) data type uchar
-	cv::Mat getColorVolume() {
-		int sizes[3] = { static_cast<int>(dy * dz), static_cast<int>(dx), 3 };
-		cv::Mat volume = cv::Mat(3, sizes, CV_8UC1, cv::Scalar(0));
-		for (int i = 0; i < dx; i++) {
-			for (int j = 0; j < dy; j++) {
-				for (int k = 0; k < dz; k++) {
-					volume.at<uchar>(j * dz + k, i, 0) = vol_access(i, j, k).color[0];
-					volume.at<uchar>(j * dz + k, i, 1) = vol_access(i, j, k).color[1];
-					volume.at<uchar>(j * dz + k, i, 2) = vol_access(i, j, k).color[2];
-				}
-			}
-		}
-		return volume;	
-	}
+	// // Get color Volume as a 2d opencv matrix with dimensions (dy *dz, dx) and three channels (r, g, b) data type uchar
+	// cv::Mat getColorVolume() {
+	// 	int sizes[3] = { static_cast<int>(dy * dz), static_cast<int>(dx), 3 };
+	// 	cv::Mat volume = cv::Mat(3, sizes, CV_8UC1, cv::Scalar(0));
+	// 	for (int i = 0; i < dx; i++) {
+	// 		for (int j = 0; j < dy; j++) {
+	// 			for (int k = 0; k < dz; k++) {
+	// 				volume.at<uchar>(j * dz + k, i, 0) = vol_access(i, j, k).color[0];
+	// 				volume.at<uchar>(j * dz + k, i, 1) = vol_access(i, j, k).color[1];
+	// 				volume.at<uchar>(j * dz + k, i, 2) = vol_access(i, j, k).color[2];
+	// 			}
+	// 		}
+	// 	}
+	// 	return volume;	
+	// }
 
-		// Get volume as a 2d opencv matrix with dimensions (dy *dz, dx) and two channels (sdf, weight) 
+	// Get volume as a 2d opencv matrix with dimensions (dy *dz, dx) and two channels (sdf, weight) 
 	cv::Mat getVolumeData() {
 		int sizes[2] = { static_cast<int>(dy * dz), static_cast<int>(dx) };
 		cv::Mat volume = cv::Mat(2, sizes, CV_16SC2);
