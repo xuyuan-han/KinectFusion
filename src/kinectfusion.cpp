@@ -61,7 +61,14 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     std::cout << ">> 3 Surface reconstruction begin" << std::endl;
 
-    Surface_Reconstruction::integrate(
+    // Surface_Reconstruction::integrate(
+    //     frame_data.depth_pyramid[0],
+    //     frame_data.color_pyramid[0],
+    //     &volume,
+    //     camera_parameters,
+    //     configuration.truncation_distance,
+    //     current_pose);
+    Surface_Reconstruction::integrate_multi_threads(
         frame_data.depth_pyramid[0],
         frame_data.color_pyramid[0],
         &volume,
@@ -81,7 +88,8 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     volumedata.tsdf_volume = volume.getVolumeData();
     volumedata.color_volume = volume.getColorVolumeData();
 
-    createAndSavePointCloudVolumeData(volumedata.tsdf_volume, current_pose, "pointcloud.ply", configuration.volume_size, true);
+    // createAndSavePointCloudVolumeData(volumedata.tsdf_volume, current_pose, "pointcloud.ply", configuration.volume_size, true);
+    createAndSavePointCloudVolumeData_multi_threads(volumedata.tsdf_volume, current_pose, "pointcloud.ply", configuration.volume_size, true);
 
     std::cout << ">>> 3.5 Point cloud generation done" << std::endl;
 
@@ -362,4 +370,205 @@ void createAndSavePointCloudVolumeData(const cv::Mat& tsdfMatrix, Eigen::Matrix4
     // Close and remove the temporary file
     tempFile.close();
     std::remove("temp.ply");
+}
+
+void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, const float tsdf_min, const float tsdf_max, int& numVertices, bool showFaces) {
+    std::ofstream tempFile(tempFilename);
+    if (!tempFile.is_open()) {
+        std::cerr << "Unable to open temporary file: " << tempFilename << std::endl;
+        return;
+    }
+
+    for (int i = 0; i < dx; ++i) {
+        for (int j = 0; j < dy; ++j) {
+            for (int k = zStart; k < zEnd; ++k) {
+                if ( (i==0 || j==0 || k==0 || i==dx-1 || j==dy-1 || k==dz-1) && showFaces && (i%4==3 && j%4==3 && k%4==3)){
+                    Point point;
+                    point.x = i;
+                    point.y = j;
+                    point.z = k;
+
+                    // show the faces of the volume
+                    point.r = static_cast<unsigned char>(255);
+                    point.g = static_cast<unsigned char>(255);
+                    point.b = static_cast<unsigned char>(255);
+
+                    // Write the point
+                    tempFile << point.x << " " << point.y << " " << point.z << " "
+                            << static_cast<int>(point.r) << " "
+                            << static_cast<int>(point.g) << " "
+                            << static_cast<int>(point.b) << "\n";
+
+                    // Increment the vertex count
+                    ++numVertices;
+                }
+                else
+                {
+                    // Retrieve the TSDF value
+                    short tsdfValue = tsdfMatrix.at<cv::Vec<short, 2>>(j * dz + k, i)[0];
+                    short weight = tsdfMatrix.at<cv::Vec<short, 2>>(j * dz + k, i)[1];
+
+                    // if (tsdfValue != 0){
+                    //     std::cout << "(tsdfValue, weight): (" << tsdfValue << ", " << weight << ")" << std::endl;
+                    // }
+
+                    if (abs(tsdfValue) > 25 || tsdfValue == 0) {
+                        // Skip invalid TSDF values
+                        continue;
+                    }
+
+                    // Normalize the TSDF value to a 0-1 range
+                    float normalized_tsdf = (tsdfValue - tsdf_min) / (tsdf_max - tsdf_min);
+
+                    Point point;
+                    point.x = i;
+                    point.y = j;
+                    point.z = k;
+
+                    // Interpolate between magenta (low TSDF) and green (high TSDF) based on normalized_tsdf
+                    point.r = static_cast<unsigned char>((1.0f - normalized_tsdf) * 255); // Magenta component decreases with TSDF
+                    point.g = static_cast<unsigned char>(normalized_tsdf * 255); // Green component increases with TSDF
+                    point.b = static_cast<unsigned char>((1.0f - normalized_tsdf) * 255); // Magenta component decreases with TSDF
+ 
+                    // Write the point
+                    tempFile << point.x << " " << point.y << " " << point.z << " "
+                            << static_cast<int>(point.r) << " "
+                            << static_cast<int>(point.g) << " "
+                            << static_cast<int>(point.b) << "\n";
+
+                    // Increment the vertex count
+                    ++numVertices;
+                }
+            }
+        }
+    }
+    tempFile.close();
+}
+
+void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, Eigen::Matrix4f current_pose, const std::string& outputFilename, Eigen::Vector3i volume_size, bool showFaces) {
+    // Keep track of the number of vertices
+    int numVertices = 0;
+    int dx = volume_size[0];
+    int dy = volume_size[1];
+    int dz = volume_size[2];
+
+    const float tsdf_min = -25.0f; // Minimum TSDF value
+    const float tsdf_max = 25.0f;  // Maximum TSDF value
+
+    int numThreads = std::thread::hardware_concurrency();
+    std::vector<std::thread> threads(numThreads);
+    int zStep = dz / numThreads;
+    std::vector<int> numVerticesVec(numThreads, 0);
+    std::vector<std::string> tempFilenames(numThreads);
+
+    for (int i = 0; i < numThreads; ++i) {
+        tempFilenames[i] = "temp_" + std::to_string(i) + ".ply";
+        int zStart = i * zStep;
+        int zEnd = (i + 1) * zStep;
+        if (i == numThreads - 1) zEnd = dz;
+        threads[i] = std::thread(savePointCloudProcessVolumeSlice, std::ref(tsdfMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, tsdf_min, tsdf_max, std::ref(numVerticesVec[i]), showFaces);
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    for (int nv : numVerticesVec) {
+        numVertices += nv;
+    }
+
+    // Show the camera pose in the .ply file
+    // Camera pyramid size
+    const float pyramidBaseSize = 100.f; // size of base
+    const float pyramidHeight = 200.f;   // height of pyramid
+
+    // The base vertex of the pyramid, relative to the camera center
+    Eigen::Matrix<float, 4, 3> pyramidBase;
+    pyramidBase <<
+        -pyramidBaseSize, -pyramidBaseSize, pyramidHeight,
+        pyramidBaseSize, -pyramidBaseSize, pyramidHeight,
+        pyramidBaseSize, pyramidBaseSize, pyramidHeight,
+        -pyramidBaseSize, pyramidBaseSize, pyramidHeight;
+
+    // apex of pyramid
+    Eigen::Vector3f pyramidApex(0, 0, 0);
+
+    // Transform base and vertices to world coordinate system
+    for (int i = 0; i < 4; ++i) {
+        pyramidBase.row(i) = (current_pose * Eigen::Vector4f(pyramidBase.row(i).x(), pyramidBase.row(i).y(), pyramidBase.row(i).z(), 1)).head<3>();
+    }
+    pyramidApex = (current_pose * Eigen::Vector4f(pyramidApex.x(), pyramidApex.y(), pyramidApex.z(), 1)).head<3>();
+
+    std::ofstream tempFilePyramid("tempFilePyramid.ply");
+
+    // Write the pyramid vertices to the file
+    for (int i = 0; i < 4; ++i) {
+        tempFilePyramid << pyramidBase(i, 0) << " " << pyramidBase(i, 1) << " " << pyramidBase(i, 2) << " 0 0 255\n"; // blue base
+        ++numVertices;
+    }
+    tempFilePyramid << pyramidApex.x() << " " << pyramidApex.y() << " " << pyramidApex.z() << " 255 0 0\n"; // red apex
+    ++numVertices;
+
+    const int lineResolution = 50; // Number of points along each line
+
+    // Generate and write points along the edges of the pyramid base
+    for (int i = 0; i < 4; ++i) {
+        Eigen::Vector3f baseVertexStart = pyramidBase.row(i);
+        Eigen::Vector3f baseVertexEnd = pyramidBase.row((i + 1) % 4); // 循环连接到下一个顶点
+
+        for (int j = 0; j <= lineResolution; ++j) {
+            float t = static_cast<float>(j) / static_cast<float>(lineResolution);
+            Eigen::Vector3f pointOnBaseLine = baseVertexStart + t * (baseVertexEnd - baseVertexStart);
+
+            // Write the point on the base edge line
+            tempFilePyramid << pointOnBaseLine.x() << " " << pointOnBaseLine.y() << " " << pointOnBaseLine.z() << " 255 255 0\n"; // yellow line
+            ++numVertices;
+        }
+    }
+
+    // Generate and write points along the lines from the pyramid base to the apex
+    for (int i = 0; i < 4; ++i) {
+        Eigen::Vector3f baseVertex = pyramidBase.row(i);
+        for (int j = 0; j <= lineResolution; ++j) {
+            float t = static_cast<float>(j) / static_cast<float>(lineResolution);
+            Eigen::Vector3f pointOnLine = baseVertex + t * (pyramidApex - baseVertex);
+
+            // Write the point on line to the apex
+            tempFilePyramid << pointOnLine.x() << " " << pointOnLine.y() << " " << pointOnLine.z() << " 255 255 0\n"; // yellow line
+            ++numVertices;
+        }
+    }
+
+    std::ofstream plyFile(outputFilename);
+    if (!plyFile.is_open()) {
+        std::cerr << "Unable to open file: " << outputFilename << std::endl;
+        return;
+    }
+
+    plyFile << "ply\nformat ascii 1.0\n";
+    plyFile << "element vertex " << numVertices << "\n";
+    plyFile << "property float x\nproperty float y\nproperty float z\nproperty uchar red\nproperty uchar green\nproperty uchar blue\n";
+    plyFile << "end_header\n";
+
+    for (const auto& tempFilename : tempFilenames) {
+        std::ifstream tempFile(tempFilename);
+        if (tempFile.good()) {
+            plyFile << tempFile.rdbuf();
+            tempFile.close();
+            std::remove(tempFilename.c_str());
+        } else {
+            std::cerr << "Error reading temporary file: " << tempFilename << std::endl;
+        }
+    }
+    tempFilePyramid.close();
+    std::ifstream readTempFilePyramid("tempFilePyramid.ply");
+    if (readTempFilePyramid.good()) {
+        plyFile << readTempFilePyramid.rdbuf();
+        readTempFilePyramid.close();
+    } else {
+        std::cerr << "Error reading temporary file for pyramid: tempFilePyramid.ply" << std::endl;
+    }
+
+    plyFile.close();
+    std::remove("tempFilePyramid.ply");
 }

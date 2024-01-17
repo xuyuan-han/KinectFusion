@@ -11,6 +11,10 @@ namespace Surface_Reconstruction {
 
 	double getLambda(Eigen::Vector2i pixel, Eigen::Matrix3f intrinsics);
 
+	void reconstructionProcessVolumeSlice(Volume* vol, float* depth_map, uint* class_map, Eigen::Matrix4f cameraToWorld, Eigen::Matrix3f intrinsics, int width, int height, float trancutionDistance, int zStart, int zEnd);
+
+	void integrate_multi_threads(cv::Mat depth, cv::Mat colorMap, Volume* vol,CameraParameters camera_parameters , float trancutionDistance, Eigen::Matrix4f pos);
+
 }
 
 #endif // !SURFACE_RECON_HPP
