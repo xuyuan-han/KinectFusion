@@ -416,6 +416,34 @@ public:
 		}
 		return volume;	
 	}
+
+		// Get volume as a 2d opencv matrix with dimensions (dy *dz, dx) and two channels (sdf, weight) 
+	cv::Mat getVolumeData() {
+		int sizes[2] = { static_cast<int>(dy * dz), static_cast<int>(dx) };
+		cv::Mat volume = cv::Mat(2, sizes, CV_16SC2);
+		for (int i = 0; i < dx; i++) {
+			for (int j = 0; j < dy; j++) {
+				for (int k = 0; k < dz; k++) {
+					volume.at<cv::Vec<short, 2>>(j * dz + k, i) = cv::Vec<short, 2>{static_cast<short>(vol_access(i, j, k).sdf), static_cast<short>(vol_access(i, j, k).weight)};
+				}
+			}
+		}
+		return volume;
+	}
+	
+	// Get color Volume as a 2d opencv matrix with dimensions (dy *dz, dx) and three channels (r, g, b) data type uchar
+	cv::Mat getColorVolumeData() {
+		int sizes[2] = { static_cast<int>(dy * dz), static_cast<int>(dx) };
+		cv::Mat volume = cv::Mat(2, sizes, CV_8UC3);
+		for (int i = 0; i < dx; i++) {
+			for (int j = 0; j < dy; j++) {
+				for (int k = 0; k < dz; k++) {
+					volume.at<cv::Vec3b>(j * dz + k, i) = cv::Vec3b{static_cast<uchar>(vol_access(i, j, k).color[0]), static_cast<uchar>(vol_access(i, j, k).color[1]), static_cast<uchar>(vol_access(i, j, k).color[2])};
+				}
+			}
+		}
+		return volume;	
+	}
 };
 
 struct Frame {
@@ -472,14 +500,14 @@ struct VolumeData {
 };
 
     struct GlobalConfiguration {
-        // The overall size of the volume (in mm). Will be allocated on the GPU and is thus limited by the amount of
+        // The overall size of the volume. Will be allocated on the GPU and is thus limited by the amount of
         // storage you have available. Dimensions are (x, y, z).
 	Eigen::Vector3i volume_size { Eigen::Vector3i(512, 512, 512) };
 	// Eigen::Vector3i volume_size { Eigen::Vector3i(1024, 1024, 1024) };
 
         // The amount of mm one single voxel will represent in each dimension. Controls the resolution of the volume.
         // float voxel_scale { 2.f };
-        float voxel_scale { 16.f };
+        float voxel_scale { 4.f }; // mm
 
         // Parameters for the Bilateral Filter, applied to incoming depth frames.
         // Directly passed to cv::cuda::bilateralFilter(...); for further information, have a look at the opencv docs.
@@ -488,7 +516,7 @@ struct VolumeData {
         float bfilter_spatial_sigma { 1.f };
 
         // The initial distance of the camera from the volume center along the z-axis (in mm)
-        float init_depth { 1000.f };
+        float init_depth { 200.f };
 
         // Downloads the model frame for each frame (for visualization purposes). If this is set to true, you can
         // retrieve the frame with Pipeline::get_last_model_frame()

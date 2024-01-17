@@ -171,6 +171,12 @@ void raycast_tsdf_kernel(
                 (static_cast<int>(std::floor(grid(2)) * volume_size[1] + std::floor(grid(1)))),
                 (static_cast<int>(std::floor(grid(0)))))[0]) * DIVSHORTMAX;
 
+                // if (tsdf != 0.f){
+                //     std::cout << "(tsdf, weight) = (" << tsdf << ", " << static_cast<float>(tsdf_volume.at<cv::Vec<short, 2>>(
+                //         (static_cast<int>(std::floor(grid(2)) * volume_size[1] + std::floor(grid(1)))),
+                //         (static_cast<int>(std::floor(grid(0)))))[1]) << ")" << std::endl;
+                // }
+
                 // if ray enter from behind
                 if (previous_tsdf < 0.f && tsdf > 0.f)
                     break;

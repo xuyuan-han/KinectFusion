@@ -90,6 +90,81 @@ void createAndSavePointCloud(const cv::Mat& tsdfMatrix, const std::string& outpu
     std::remove("temp.ply");
 }
 
+void createAndSavePointCloudVolumeData(const cv::Mat& tsdfMatrix, const std::string& outputFilename, Eigen::Vector3i volume_size) {
+    std::ofstream plyFile(outputFilename);
+
+    if (!plyFile.is_open()) {
+        std::cerr << "Unable to open file: " << outputFilename << std::endl;
+        return;
+    }
+
+    // Write to something temporary and then copy to the final file
+    // This is done to update the number of vertices in the header
+    std::ofstream tempFile("temp.ply");
+    // Keep track of the number of vertices
+    int numVertices = 0;
+    int dx = volume_size[0];
+    int dy = volume_size[1];
+    int dz = volume_size[2];
+
+    const float tsdf_min = -25.0f; // Minimum TSDF value
+    const float tsdf_max = 25.0f;  // Maximum TSDF value
+
+    for (int i = 0; i < dx; ++i) {
+        for (int j = 0; j < dy; ++j) {
+            for (int k = 0; k < dz; ++k) {
+                // Retrieve the TSDF value
+                short tsdfValue = tsdfMatrix.at<cv::Vec<short, 2>>(j * dz + k, i)[0];
+                short weight = tsdfMatrix.at<cv::Vec<short, 2>>(j * dz + k, i)[1];
+
+                // if (tsdfValue != 0){
+                //     std::cout << "(tsdfValue, weight): (" << tsdfValue << ", " << weight << ")" << std::endl;
+                // }
+
+                if (abs(tsdfValue) > 25 || tsdfValue == 0) {
+                    // Skip invalid TSDF values
+                    continue;
+                }
+
+                // Normalize the TSDF value to a 0-1 range
+                float normalized_tsdf = (tsdfValue - tsdf_min) / (tsdf_max - tsdf_min);
+
+                Point point;
+                point.x = i;
+                point.y = j;
+                point.z = k;
+
+                // Interpolate between green (low TSDF) and magenta (high TSDF) based on normalized_tsdf
+                point.r = static_cast<unsigned char>(normalized_tsdf * 255); // Magenta component increases with TSDF
+                point.g = static_cast<unsigned char>((1.0f - normalized_tsdf) * 255); // Green component decreases with TSDF
+                point.b = static_cast<unsigned char>(normalized_tsdf * 255); // Magenta component increases with TSDF
+
+                // Write the point
+                tempFile << point.x << " " << point.y << " " << point.z << " "
+                        << static_cast<int>(point.r) << " "
+                        << static_cast<int>(point.g) << " "
+                        << static_cast<int>(point.b) << "\n";
+
+                // Increment the vertex count
+                ++numVertices;
+            }
+        }
+    }
+
+    // Copy the temporary file to the final file and update the header
+    tempFile.close();
+    tempFile.open("temp.ply", std::ios::in);
+    plyFile << "ply\nformat ascii 1.0\n";
+    plyFile << "element vertex " << numVertices << "\n";
+    plyFile << "property float x\nproperty float y\nproperty float z\nproperty uchar red\nproperty uchar green\nproperty uchar blue\n";
+    plyFile << "end_header\n";
+    plyFile << tempFile.rdbuf();
+
+    // Close and remove the temporary file
+    tempFile.close();
+    std::remove("temp.ply");
+}
+
 bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map)
 {
     std::cout << ">> 1 Surface measurement begin" << std::endl;
@@ -143,10 +218,15 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     std::cout << ">> 3.5 Point cloud generation begin" << std::endl;
 
-    volumedata.tsdf_volume = volume.getVolume();
-    volumedata.color_volume = volume.getColorVolume();
+    // volumedata.tsdf_volume = volume.getVolume();
+    // volumedata.color_volume = volume.getColorVolume();
 
-    createAndSavePointCloud(volumedata.tsdf_volume, "pointcloud.ply", configuration.volume_size);
+    // createAndSavePointCloud(volumedata.tsdf_volume, "pointcloud.ply", configuration.volume_size);
+
+    volumedata.tsdf_volume = volume.getVolumeData();
+    volumedata.color_volume = volume.getColorVolumeData();
+
+    createAndSavePointCloudVolumeData(volumedata.tsdf_volume, "pointcloud.ply", configuration.volume_size);
 
     std::cout << ">>> 3.5 Point cloud generation done" << std::endl;
 

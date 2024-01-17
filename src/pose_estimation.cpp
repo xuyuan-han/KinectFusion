@@ -36,8 +36,8 @@ bool pose_estimation(Eigen::Matrix4f& pose,
             std::cout << "ICP after estimate step" << std::endl;
 
             // print matrix A and b
-            std::cout << "A: \n" << A << std::endl;
-            std::cout << "b: \n" << b << std::endl;
+            // std::cout << "A: \n" << A << std::endl;
+            // std::cout << "b: \n" << b << std::endl;
 
             // Solve equation to get alpha, beta and gamma
             double det = A.determinant();
@@ -182,8 +182,8 @@ void estimate_step(const Eigen::Matrix3f& rotation_current,
                 A += (vec6f.cast<double>()) * (vec6f.transpose().cast<double>());
                 b += (vec6f.cast<double>()) * (n.dot(d - s));
 
-                std::cout << "A*" << (vec6f.cast<double>()) * (vec6f.transpose().cast<double>()) << std::endl;
-                std::cout << "b*" << (vec6f.cast<double>()) * (n.dot(d - s)) << std::endl;
+                std::cout << "A*:\n" << (vec6f.cast<double>()) * (vec6f.transpose().cast<double>()) << std::endl;
+                std::cout << "b*:\n" << (vec6f.cast<double>()) * (n.dot(d - s)) << std::endl;
             }
             else{
                 // std::cout << "ICP estimate_step correspondence not found" << std::endl;
