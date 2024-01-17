@@ -32,3 +32,7 @@ private:
     cv::Mat last_model_normal_frame;
     size_t frame_id { 0 };
 };
+
+void createAndSavePointCloud(const cv::Mat& tsdfMatrix, const std::string& outputFilename, Eigen::Vector3i volume_size);
+
+void createAndSavePointCloudVolumeData(const cv::Mat& tsdfMatrix, Eigen::Matrix4f current_pose, const std::string& outputFilename, Eigen::Vector3i volume_size, bool showFaces = false);

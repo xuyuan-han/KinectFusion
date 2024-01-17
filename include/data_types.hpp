@@ -506,8 +506,8 @@ struct VolumeData {
 	// Eigen::Vector3i volume_size { Eigen::Vector3i(1024, 1024, 1024) };
 
         // The amount of mm one single voxel will represent in each dimension. Controls the resolution of the volume.
-        // float voxel_scale { 2.f };
-        float voxel_scale { 4.f }; // mm
+        float voxel_scale { 2.f };
+        // float voxel_scale { 4.f }; // mm
 
         // Parameters for the Bilateral Filter, applied to incoming depth frames.
         // Directly passed to cv::cuda::bilateralFilter(...); for further information, have a look at the opencv docs.
@@ -516,7 +516,7 @@ struct VolumeData {
         float bfilter_spatial_sigma { 1.f };
 
         // The initial distance of the camera from the volume center along the z-axis (in mm)
-        float init_depth { 200.f };
+        float init_depth { 1500.f };
 
         // Downloads the model frame for each frame (for visualization purposes). If this is set to true, you can
         // retrieve the frame with Pipeline::get_last_model_frame()
