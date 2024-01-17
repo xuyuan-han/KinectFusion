@@ -22,7 +22,7 @@ bool pose_estimation(Eigen::Matrix4f& pose,
             Eigen::Matrix<double, 6, 6, Eigen::RowMajor> A {};
             Eigen::Matrix<double, 6, 1> b {};
 
-            std::cout << "ICP before estimate step" << std::endl;
+            // std::cout << "ICP before estimate step" << std::endl;
 
             // Estimate one step on the CPU
             estimate_step(current_global_rotation, current_global_translation,
@@ -33,7 +33,7 @@ bool pose_estimation(Eigen::Matrix4f& pose,
                                 distance_threshold, sinf(angle_threshold * 3.14159254f / 180.f),
                                 A, b);
 
-            std::cout << "ICP after estimate step" << std::endl;
+            // std::cout << "ICP after estimate step" << std::endl;
 
             // print matrix A and b
             std::cout << "A: \n" << A << std::endl;

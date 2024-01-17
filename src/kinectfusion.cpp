@@ -90,6 +90,8 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     volumedata.tsdf_volume = volume.getVolumeData();
     volumedata.color_volume = volume.getColorVolumeData();
 
+    // std::cout << volumedata.color_volume << std::endl;
+
     auto end_transfer = std::chrono::high_resolution_clock::now(); // end time measurement
     std::chrono::duration<double, std::milli> elapsed_transfer = end_transfer - start; // elapsed time in milliseconds
     std::cout << "-- Volumedata transfer time: " << elapsed_transfer.count() << " ms\n";
@@ -121,7 +123,6 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     }
 
     std::cout << ">>> 4 Surface prediction done" << std::endl;
-    std::cout << "-----------------------------------" << std::endl;
 
     last_model_color_frame = model_data.color_pyramid[0];
     last_model_vertex_frame = model_data.vertex_pyramid[0];

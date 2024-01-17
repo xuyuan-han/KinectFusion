@@ -40,6 +40,8 @@ int main(int argc, char **argv)
         }else{
             std::cout << "Frame " << sensor.getCurrentFrameCnt() << " processed" << std::endl;
         }
+        
+        std::cout << "-----------------------------------" << std::endl;
 
         cv::imshow("InputRGB", sensor.getColorRGBX());
         cv::moveWindow("InputRGB", 0, 0);

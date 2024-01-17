@@ -139,7 +139,7 @@ double Surface_Reconstruction::getLambda(Eigen::Vector2i pixel, Eigen::Matrix3f 
 };
 
 // multi thread version
-void Surface_Reconstruction::reconstructionProcessVolumeSlice(Volume* vol, float* depth_map, uint* class_map, Eigen::Matrix4f cameraToWorld, Eigen::Matrix3f intrinsics, int width, int height, float trancutionDistance, int zStart, int zEnd) {
+void Surface_Reconstruction::reconstructionProcessVolumeSlice(Volume* vol, cv::Mat colorMap, float* depth_map, uint* class_map, Eigen::Matrix4f cameraToWorld, Eigen::Matrix3f intrinsics, int width, int height, float trancutionDistance, int zStart, int zEnd) {
     for (int z = zStart; z < zEnd; z++) {
         for (int y = 0; y < vol->getDimY(); y++) {
             for (int x = 0; x < vol->getDimX(); x++) {
@@ -186,13 +186,13 @@ void Surface_Reconstruction::reconstructionProcessVolumeSlice(Volume* vol, float
 							}
 							Vector4uc oldColor = vol->getVoxel(x, y, z).color;
 							Vector4uc color = Vector4uc();
-							//color[0] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[0];
-							//color[1] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[1];
-							//color[2] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[2];
+							color[0] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[0];
+							color[1] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[1];
+							color[2] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[2];
 							// for now just use the color of the voxel
-							color[0] = 255;
-							color[1] = 255;
-							color[2] = 255;
+							// color[0] = 255;
+							// color[1] = 255;
+							// color[2] = 255;
 
 
 							color[3] = 255;
@@ -237,7 +237,7 @@ void Surface_Reconstruction::integrate_multi_threads(cv::Mat depth, cv::Mat colo
         if (i == numThreads - 1) {
             zEnd = vol->getDimZ();
         }
-        threads[i] = std::thread(Surface_Reconstruction::reconstructionProcessVolumeSlice, vol, depth_map, class_map, cameraToWorld, intrinsics, width, height, trancutionDistance, zStart, zEnd);
+        threads[i] = std::thread(Surface_Reconstruction::reconstructionProcessVolumeSlice, vol, colorMap, depth_map, class_map, cameraToWorld, intrinsics, width, height, trancutionDistance, zStart, zEnd);
     }
 
     for (auto& thread : threads) {

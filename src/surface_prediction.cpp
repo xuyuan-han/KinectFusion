@@ -1,6 +1,7 @@
 #include "surface_prediction.hpp"
 
 #define DIVSHORTMAX 0.0000305185f 
+// #define DIVSHORTMAX 1.f 
 #define SHORTMAX    32767               // SHRT_MAX;
 #define MAX_WEIGHT  128                // max weight
 
@@ -155,7 +156,12 @@ void raycast_tsdf_kernel(
             //TODO: why not sqrt(3) * volume_range[0]?
             const float max_search_length = ray_length + volume_range[0] * sqrt(2.f);
 
+            // int count = 0;
+
             for (; ray_length < max_search_length; ray_length += truncation_distance * 0.5f){
+
+                // ++count;
+                // std::cout << "count: " << count << std::endl;
 
                 grid = ((translation + (ray_direction * (ray_length + truncation_distance * 0.5f))) / voxel_scale);
                 
@@ -164,10 +170,14 @@ void raycast_tsdf_kernel(
                     grid.y() < 1 || grid.y() >= volume_size[1] - 1 ||
                     grid.z() < 1 || grid.z() >= volume_size[2] - 1 )
                         continue;
-                
+
+                // if (tsdf != 0.f){
+                //     std::cout << "tsdf before: " << tsdf << std::endl;
+                // }
+
                 const float previous_tsdf = tsdf;
 
-                float tsdf = static_cast<float>(tsdf_volume.at<cv::Vec<short, 2>>(
+                tsdf = static_cast<float>(tsdf_volume.at<cv::Vec<short, 2>>(
                 (static_cast<int>(std::floor(grid(2)) * volume_size[1] + std::floor(grid(1)))),
                 (static_cast<int>(std::floor(grid(0)))))[0]) * DIVSHORTMAX;
 
@@ -177,12 +187,19 @@ void raycast_tsdf_kernel(
                 //         (static_cast<int>(std::floor(grid(0)))))[1]) << ")" << std::endl;
                 // }
 
+                // if (tsdf != 0.f){
+                //     std::cout << "(previous_tsdf, tsdf) = (" << previous_tsdf << ", " << tsdf << ")" << std::endl;
+                // }
+
                 // if ray enter from behind
-                if (previous_tsdf < 0.f && tsdf > 0.f)
+                if (previous_tsdf < 0.f && tsdf > 0.f){
+                    // std::cout << "ray enter from behind" << std::endl;
                     break;
+                }
 
                 //if intersecting zero-crossing
                 if (previous_tsdf > 0.f && tsdf < 0.f){
+                    // std::cout << "intersecting zero-crossing" << std::endl;
 
                     const float t_star =
                                 ray_length - truncation_distance * 0.5f * previous_tsdf / (tsdf - previous_tsdf);
@@ -194,8 +211,10 @@ void raycast_tsdf_kernel(
                     // check if location is in the grid
                     if (location_in_grid.x() < 1 || location_in_grid.x() >= volume_size[0] - 1 ||
                             location_in_grid.y() < 1 || location_in_grid.y() >= volume_size[1] - 1 ||
-                            location_in_grid.z() < 1 || location_in_grid.z() >= volume_size[2] - 1)
+                            location_in_grid.z() < 1 || location_in_grid.z() >= volume_size[2] - 1){
+                            // std::cout << "location is not in the grid" << std::endl;
                             break;
+                    }
 
                     // caculate normal in this position
 
@@ -207,8 +226,10 @@ void raycast_tsdf_kernel(
 
                     shifted.x() += 1.f;
 
-                    if(shifted.x() >= volume_size[0] - 1)
+                    if(shifted.x() >= volume_size[0] - 1){
+                        // std::cout << "shifted.x() >= volume_size[0] - 1" << std::endl;
                         break;
+                    }
                     
                     const float Fx1 = interpolate_trilinearly(
                         shifted, 
@@ -221,8 +242,10 @@ void raycast_tsdf_kernel(
 
                     shifted.x() -= 1.f;
 
-                    if(shifted.x() < 1)
+                    if(shifted.x() < 1){
+                        // std::cout << "shifted.x() < 1" << std::endl;
                         break;
+                    }
 
                     const float Fx2 = interpolate_trilinearly(
                         shifted, 
@@ -237,8 +260,10 @@ void raycast_tsdf_kernel(
 
                     shifted.y() += 1;
 
-                    if (shifted.y() >= volume_size[1] - 1)
+                    if (shifted.y() >= volume_size[1] - 1){
+                        // std::cout << "shifted.y() >= volume_size[1] - 1" << std::endl;
                         break;
+                    }
 
                     const float Fy1 = interpolate_trilinearly(
                         shifted, 
@@ -250,8 +275,10 @@ void raycast_tsdf_kernel(
 
                     shifted.y() -= 1;
 
-                    if (shifted.y() < 1)
+                    if (shifted.y() < 1){
+                        // std::cout << "shifted.y() < 1" << std::endl;
                         break;
+                    }
 
                     const float Fy2 = interpolate_trilinearly(
                         shifted, 
@@ -266,8 +293,10 @@ void raycast_tsdf_kernel(
 
                     shifted.z() += 1;
 
-                    if (shifted.z() >= volume_size[2] - 1)
+                    if (shifted.z() >= volume_size[2] - 1){
+                        // std::cout << "shifted.z() >= volume_size[2] - 1" << std::endl;
                         break;
+                    }
 
                     const float Fz1 = interpolate_trilinearly(
                         shifted, 
@@ -279,8 +308,10 @@ void raycast_tsdf_kernel(
 
                     shifted.z() -= 1;
 
-                    if (shifted.z() < 1)
+                    if (shifted.z() < 1){
+                        // std::cout << "shifted.z() < 1" << std::endl;
                         break;
+                    }
 
                     const float Fz2 = interpolate_trilinearly(
                         shifted, 
@@ -290,8 +321,10 @@ void raycast_tsdf_kernel(
 
                     normal.z() = (Fz1 - Fz2);
 
-                    if (normal.norm() == 0)
-                            break;
+                    if (normal.norm() == 0){
+                        // std::cout << "normal.norm() == 0" << std::endl;
+                        break;
+                    }
 
                     //if normal is not zero, then normalize it
                     normal.normalize();
@@ -306,7 +339,11 @@ void raycast_tsdf_kernel(
                     model_color.at<cv::Vec3b>(y,x) = color_volume.at<cv::Vec3b>((
                                 location_in_grid_int.z() * volume_size[1] +
                                 location_in_grid_int.y()),(location_in_grid_int.x()));
-                    
+
+                    // std::cout << "model_vertex ("<< y << "," << x << "): " << model_vertex.at<cv::Vec3f>(y,x) << std::endl;
+                    // std::cout << "model_normal ("<< y << "," << x << "): " << model_normal.at<cv::Vec3f>(y,x) << std::endl;
+                    // std::cout << "model_color ("<< y << "," << x << "): " << model_color.at<cv::Vec3b>(y,x) << std::endl;
+
                     break;
                 }
             }

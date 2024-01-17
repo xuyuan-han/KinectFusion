@@ -508,8 +508,8 @@ struct VolumeData {
 	// Eigen::Vector3i volume_size { Eigen::Vector3i(1024, 1024, 1024) };
 
         // The amount of mm one single voxel will represent in each dimension. Controls the resolution of the volume.
-        float voxel_scale { 2.f };
-        // float voxel_scale { 4.f }; // mm
+        // float voxel_scale { 2.f };
+        float voxel_scale { 4.f }; // mm
 
         // Parameters for the Bilateral Filter, applied to incoming depth frames.
         // Directly passed to cv::cuda::bilateralFilter(...); for further information, have a look at the opencv docs.
