@@ -183,9 +183,11 @@ public:
 	}
 	Volume(const Eigen::Vector3i _volume_size, const float _voxel_scale)
 	{
-		min = Eigen::Vector3d(-_volume_size[0] / 2, -_volume_size[1] / 2, -_volume_size[2] / 2);
+		// min = Eigen::Vector3d(-_volume_size[0] / 2, -_volume_size[1] / 2, -_volume_size[2] / 2);
+		min = Eigen::Vector3d(0,0,0);
 		min = min * _voxel_scale;
-		max = Eigen::Vector3d(_volume_size[0] / 2, _volume_size[1] / 2, _volume_size[2] / 2);
+		// max = Eigen::Vector3d(_volume_size[0] / 2, _volume_size[1] / 2, _volume_size[2] / 2);
+		max = Eigen::Vector3d(_volume_size[0], _volume_size[1], _volume_size[2]);
 		max = max * _voxel_scale;
 		diag = max - min;
 		dx = _volume_size[0];

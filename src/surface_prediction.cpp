@@ -61,6 +61,7 @@ float get_min_time(
     const Eigen::Matrix<float, 3, 1, Eigen::DontAlign>& origin,
     const Eigen::Matrix<float, 3, 1, Eigen::DontAlign>& direction)
 {
+    // float txmin = ((direction.x() > 0 ? (-volume_max[0]/2.f) : (volume_max[0]/2.f)) - origin.x()) / direction.x();
     float txmin = ((direction.x() > 0 ? 0.f : volume_max[0]) - origin.x()) / direction.x();
     // std::cout << "volume_max[0] " << volume_max[0] << std::endl;
     // std::cout << "direction.x " << direction.x() << std::endl;
@@ -68,12 +69,14 @@ float get_min_time(
     // std::cout << "txmin " << txmin << std::endl;
     // std::cout << "sxmin " << txmin * direction.x() << std::endl;
 
+    // float tymin = ((direction.y() > 0 ? (-volume_max[1]/2.f) : (volume_max[1]/2.f)) - origin.y()) / direction.y();
     float tymin = ((direction.y() > 0 ? 0.f : volume_max[1]) - origin.y()) / direction.y();
     // std::cout << "direction.y " << direction.y() << std::endl;
     // std::cout << "origin.y " << origin.y() << std::endl;
     // std::cout << "tymin " << tymin << std::endl;
     // std::cout << "symin " << tymin * direction.y() << std::endl;
 
+    // float tzmin = ((direction.z() > 0 ? (-volume_max[2]/2.f) : (volume_max[2]/2.f)) - origin.z()) / direction.z();
     float tzmin = ((direction.z() > 0 ? 0.f : volume_max[2]) - origin.z()) / direction.z();
     // std::cout << "direction.z " << direction.z() << std::endl;
     // std::cout << "origin.z " << origin.z() << std::endl;
@@ -93,6 +96,9 @@ float get_max_time(
     const Eigen::Matrix<float, 3, 1, Eigen::DontAlign>& direction
 )
 {
+    // float txmax = ((direction.x() > 0 ? (volume_max[0]/2.f) : (-volume_max[0]/2.f)) - origin.x()) / direction.x();
+    // float tymax = ((direction.y() > 0 ? (volume_max[1]/2.f) : (-volume_max[1]/2.f)) - origin.y()) / direction.y();
+    // float tzmax = ((direction.z() > 0 ? (volume_max[2]/2.f) : (-volume_max[2]/2.f)) - origin.z()) / direction.z();
     float txmax = ((direction.x() > 0 ? volume_max[0] : 0.f) - origin.x()) / direction.x();
     float tymax = ((direction.y() > 0 ? volume_max[1] : 0.f) - origin.y()) / direction.y();
     float tzmax = ((direction.z() > 0 ? volume_max[2] : 0.f) - origin.z()) / direction.z();

@@ -12,12 +12,12 @@ Pipeline::Pipeline(const CameraParameters _camera_parameters,
         frame_id{0}
 {
     current_pose.setIdentity();
-    // current_pose(0, 3) = _configuration.volume_size[0] / 2 * _configuration.voxel_scale;
-    // current_pose(1, 3) = _configuration.volume_size[1] / 2 * _configuration.voxel_scale;
-    // current_pose(2, 3) = _configuration.volume_size[2] / 2 * _configuration.voxel_scale - _configuration.init_depth;
-    current_pose(0, 3) = 0;
-    current_pose(1, 3) = 0;
-    current_pose(2, 3) = 0-_configuration.init_depth;
+    current_pose(0, 3) = _configuration.volume_size[0] / 2 * _configuration.voxel_scale;
+    current_pose(1, 3) = _configuration.volume_size[1] / 2 * _configuration.voxel_scale;
+    current_pose(2, 3) = _configuration.volume_size[2] / 2 * _configuration.voxel_scale - _configuration.init_depth;
+    // current_pose(0, 3) = 0;
+    // current_pose(1, 3) = 0;
+    // current_pose(2, 3) = 0-_configuration.init_depth;
 }
 
 bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map)
@@ -295,9 +295,9 @@ void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::stri
             for (int k = zStart; k < zEnd; ++k) {
                 if ( (i==0 || j==0 || k==0 || i==dx-1 || j==dy-1 || k==dz-1) && showFaces && (i%4==3 && j%4==3 && k%4==3)){
                     Point point;
-                    point.x = (i - dx/2) * voxel_scale;
-                    point.y = (j - dy/2) * voxel_scale;
-                    point.z = (k - dz/2) * voxel_scale;
+                    point.x = i * voxel_scale;
+                    point.y = j * voxel_scale;
+                    point.z = k * voxel_scale;
 
                     // show the faces of the volume
                     point.r = static_cast<unsigned char>(255);
@@ -332,9 +332,9 @@ void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::stri
                     float normalized_tsdf = (tsdfValue - tsdf_min) / (tsdf_max - tsdf_min);
 
                     Point point;
-                    point.x = (i - dx/2) * voxel_scale;
-                    point.y = (j - dy/2) * voxel_scale;
-                    point.z = (k - dz/2) * voxel_scale;
+                    point.x = i * voxel_scale;
+                    point.y = j * voxel_scale;
+                    point.z = k * voxel_scale;
 
                     // Interpolate between magenta (low TSDF) and green (high TSDF) based on normalized_tsdf
                     point.r = static_cast<unsigned char>((1.0f - normalized_tsdf) * 255); // Magenta component decreases with TSDF
@@ -493,9 +493,9 @@ void saveColorPointCloudProcessVolumeSlice(const cv::Mat& colorMatrix, const std
             for (int k = zStart; k < zEnd; ++k) {
                 if ( (i==0 || j==0 || k==0 || i==dx-1 || j==dy-1 || k==dz-1) && showFaces && (i%4==3 && j%4==3 && k%4==3)){
                     Point point;
-                    point.x = (i - dx/2) * voxel_scale;
-                    point.y = (j - dy/2) * voxel_scale;
-                    point.z = (k - dz/2) * voxel_scale;
+                    point.x = i * voxel_scale;
+                    point.y = j * voxel_scale;
+                    point.z = k * voxel_scale;
 
                     // show the faces of the volume
                     point.r = static_cast<unsigned char>(255);
@@ -522,9 +522,9 @@ void saveColorPointCloudProcessVolumeSlice(const cv::Mat& colorMatrix, const std
                     }
 
                     Point point;
-                    point.x = (i - dx/2) * voxel_scale;
-                    point.y = (j - dy/2) * voxel_scale;
-                    point.z = (k - dz/2) * voxel_scale;
+                    point.x = i * voxel_scale;
+                    point.y = j * voxel_scale;
+                    point.z = k * voxel_scale;
 
                     point.r = colorValue[2];
                     point.g = colorValue[1];
