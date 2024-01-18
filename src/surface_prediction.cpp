@@ -126,8 +126,8 @@ void raycast_tsdf_kernel(
     // std::cout << "\nmodel_vertex size: " << model_vertex.size() << std::endl;
     for(int x = 0; x < model_vertex.cols; ++x){
         for(int y = 0; y < model_vertex.rows; ++y){
-    // for(int x = model_vertex.cols/2.f; x < model_vertex.cols; ++x){
-    //     for(int y = model_vertex.rows/2.f; y < model_vertex.rows; ++y){
+    // for(int x = model_vertex.cols/2; x < model_vertex.cols; ++x){
+    //     for(int y = model_vertex.rows/2; y < model_vertex.rows; ++y){
             // std::cout << "(x,y) = (" << x << "," << y << ")" << std::endl;
             const Eigen::Vector3f volume_range = volume_size.cast<float>() * voxel_scale; 
             const Eigen::Matrix<float, 3, 1, Eigen::DontAlign> pixel_position(
@@ -135,6 +135,10 @@ void raycast_tsdf_kernel(
                         (y - cam_parameters.principal_y) / cam_parameters.focal_y,      // Y/Z
                         1.f);
             Eigen::Matrix<float, 3, 1, Eigen::DontAlign> ray_direction = rotation * pixel_position;
+
+            // std::cout << "(x,y): " << "(" << x << "," << y << ") ";
+            // std::cout << "ray_direction: (" << ray_direction.x() << "," << ray_direction.y() << "," << ray_direction.z() << ")" << std::endl;
+
             ray_direction.normalize();
 
             // std::cout << "ray_direction: \n" << ray_direction << std::endl;
@@ -151,6 +155,7 @@ void raycast_tsdf_kernel(
             
             ray_length += voxel_scale;
             Eigen::Matrix<float, 3, 1, Eigen::DontAlign> grid = (translation + (ray_direction * ray_length)) / voxel_scale;
+            // std::cout << "translation: " << translation << std::endl;
             // std::cout << "grid: " << grid << std::endl;
 
             float tsdf = static_cast<float>(tsdf_volume.at<cv::Vec<short, 2>>(
@@ -346,6 +351,9 @@ void raycast_tsdf_kernel(
                                 location_in_grid_int.z() * volume_size[1] +
                                 location_in_grid_int.y()),(location_in_grid_int.x()));
 
+                    // std::cout << "(x,y): " << "(" << x << "," << y << ") ";
+                    // std::cout << "grid: (" << location_in_grid_int.x() << "," << location_in_grid_int.y() << "," << location_in_grid_int.z() << ")" << std::endl;
+
                     // std::cout << "model_vertex ("<< y << "," << x << "): " << model_vertex.at<cv::Vec3f>(y,x) << std::endl;
                     // std::cout << "model_normal ("<< y << "," << x << "): " << model_normal.at<cv::Vec3f>(y,x) << std::endl;
                     // std::cout << "model_color ("<< y << "," << x << "): " << model_color.at<cv::Vec3b>(y,x) << std::endl;
@@ -384,4 +392,6 @@ void surface_prediction(
         pose.block(0, 0, 3, 3),             // rotation matrix
         pose.block(0, 3, 3, 1));            // translation vector
     // std::cout << ">> 4.* raycast_tsdf_kernel done" << std::endl;
+    // cv::imshow("model_color", model_color);
+    // cv::waitKey(1);
 }

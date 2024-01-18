@@ -316,8 +316,8 @@ void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::stri
                 else
                 {
                     // Retrieve the TSDF value
-                    short tsdfValue = tsdfMatrix.at<cv::Vec<short, 2>>(j * dz + k, i)[0];
-                    short weight = tsdfMatrix.at<cv::Vec<short, 2>>(j * dz + k, i)[1];
+                    short tsdfValue = tsdfMatrix.at<cv::Vec<short, 2>>(k * dy + j, i)[0];
+                    short weight = tsdfMatrix.at<cv::Vec<short, 2>>(k * dy + j, i)[1];
 
                     // if (tsdfValue != 0){
                     //     std::cout << "(tsdfValue, weight): (" << tsdfValue << ", " << weight << ")" << std::endl;
@@ -514,7 +514,7 @@ void saveColorPointCloudProcessVolumeSlice(const cv::Mat& colorMatrix, const std
                 else
                 {
                     // Retrieve the color value
-                    cv::Vec3b colorValue = colorMatrix.at<cv::Vec3b>(j * dz + k, i);
+                    cv::Vec3b colorValue = colorMatrix.at<cv::Vec3b>(k * dy + j, i);
 
                     if (colorValue == cv::Vec3b{0, 0, 0}) {
                         // Skip invalid color values
@@ -569,7 +569,7 @@ void saveColorPointCloudProcessVolumeSlice(const cv::Mat& colorMatrix, const std
 //         for (int j = 0; j < dy; ++j) {
 //             for (int k = 0; k < dz; ++k) {
 //                 // Retrieve the TSDF value
-//                 short tsdfValue = tsdfMatrix.at<short>(j * dz + k, i, 0);
+//                 short tsdfValue = tsdfMatrix.at<short>(k * dy + j, i, 0);
 
 //                 if (abs(tsdfValue) > 25 || tsdfValue == 0) {
 //                     // Skip invalid TSDF values
@@ -661,8 +661,8 @@ void saveColorPointCloudProcessVolumeSlice(const cv::Mat& colorMatrix, const std
 //                 else
 //                 {
 //                     // Retrieve the TSDF value
-//                     short tsdfValue = tsdfMatrix.at<cv::Vec<short, 2>>(j * dz + k, i)[0];
-//                     short weight = tsdfMatrix.at<cv::Vec<short, 2>>(j * dz + k, i)[1];
+//                     short tsdfValue = tsdfMatrix.at<cv::Vec<short, 2>>(k * dy + j, i)[0];
+//                     short weight = tsdfMatrix.at<cv::Vec<short, 2>>(k * dy + j, i)[1];
 
 //                     // if (tsdfValue != 0){
 //                     //     std::cout << "(tsdfValue, weight): (" << tsdfValue << ", " << weight << ")" << std::endl;

@@ -61,7 +61,7 @@ int main(int argc, char **argv)
         std::string filenameOut = std::string("../output/");
         cv::imwrite(filenameOut + "InputRGB_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", sensor.getColorRGBX());
         cv::imwrite(filenameOut + "InputDepth_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", sensor.getDepth());
-        cv::imwrite(filenameOut + "PipelineOutputModel_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", pipeline.get_last_model_color_frame());
+        cv::imwrite(filenameOut + "PipelineOutputColor_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", pipeline.get_last_model_color_frame());
         cv::imwrite(filenameOut + "PipelineOutputVertex_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", pipeline.get_last_model_vertex_frame());
         cv::imwrite(filenameOut + "PipelineOutputNormal_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", pipeline.get_last_model_normal_frame());
 

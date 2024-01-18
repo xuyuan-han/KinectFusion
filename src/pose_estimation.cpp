@@ -48,7 +48,7 @@ bool pose_estimation(Eigen::Matrix4f& pose,
             float beta = result(1);
             float gamma = result(2);
 
-            std::cout << "ICP after LU" << std::endl;
+            // std::cout << "ICP after LU" << std::endl;
 
             // Update rotation
             auto camera_rotation_incremental(
@@ -57,7 +57,7 @@ bool pose_estimation(Eigen::Matrix4f& pose,
                     Eigen::AngleAxisf(alpha, Eigen::Vector3f::UnitX()));
             auto camera_translation_incremental = result.tail<3>();
 
-            std::cout << "ICP after incremental" << std::endl;
+            // std::cout << "ICP after incremental" << std::endl;
 
             // Update translation
             current_global_translation =
@@ -66,7 +66,7 @@ bool pose_estimation(Eigen::Matrix4f& pose,
         }
     }
 
-    std::cout << "ICP after pyramid loop" << std::endl;
+    // std::cout << "ICP after pyramid loop" << std::endl;
 
     // Return the new pose
     pose.block(0, 0, 3, 3) = current_global_rotation;
@@ -140,7 +140,7 @@ void estimate_step(const Eigen::Matrix3f& rotation_current,
 
                             float angle = acosf(normal_previous_global.dot(normal_current_global));
                             
-                            std::cout << "angle: " << angle << std::endl;
+                            // std::cout << "angle: " << angle << std::endl;
                             
                             if (angle <= angle_threshold){
                                 n = normal_previous_global;
@@ -160,10 +160,10 @@ void estimate_step(const Eigen::Matrix3f& rotation_current,
                 vec6f.head<3>() = s.cross(n);
                 vec6f.tail<3>() = n;
 
-                std::cout << "vec6f: " << vec6f << std::endl;
-                std::cout << "n: " << n << std::endl;
-                std::cout << "d: " << d << std::endl;
-                std::cout << "s: " << s << std::endl;
+                // std::cout << "vec6f: " << vec6f << std::endl;
+                // std::cout << "n: " << n << std::endl;
+                // std::cout << "d: " << d << std::endl;
+                // std::cout << "s: " << s << std::endl;
 
                 //      | 0x0 0x1 0x2 0x3 0x4 0x5 |
                 //      | 1x0 1x1 1x2 1x3 1x4 1x5 |
@@ -182,8 +182,8 @@ void estimate_step(const Eigen::Matrix3f& rotation_current,
                 A += (vec6f.cast<double>()) * (vec6f.transpose().cast<double>());
                 b += (vec6f.cast<double>()) * (n.dot(d - s));
 
-                std::cout << "A*:\n" << (vec6f.cast<double>()) * (vec6f.transpose().cast<double>()) << std::endl;
-                std::cout << "b*:\n" << (vec6f.cast<double>()) * (n.dot(d - s)) << std::endl;
+                // std::cout << "A*:\n" << (vec6f.cast<double>()) * (vec6f.transpose().cast<double>()) << std::endl;
+                // std::cout << "b*:\n" << (vec6f.cast<double>()) * (n.dot(d - s)) << std::endl;
             }
             else{
                 // std::cout << "ICP estimate_step correspondence not found" << std::endl;

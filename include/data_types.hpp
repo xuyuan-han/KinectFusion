@@ -429,7 +429,7 @@ public:
 		for (int i = 0; i < dx; i++) {
 			for (int j = 0; j < dy; j++) {
 				for (int k = 0; k < dz; k++) {
-					volume.at<cv::Vec<short, 2>>(j * dz + k, i) = cv::Vec<short, 2>{static_cast<short>(vol_access(i, j, k).sdf), static_cast<short>(vol_access(i, j, k).weight)};
+					volume.at<cv::Vec<short, 2>>(k * dy + j, i) = cv::Vec<short, 2>{static_cast<short>(vol_access(i, j, k).sdf), static_cast<short>(vol_access(i, j, k).weight)};
 				}
 			}
 		}
@@ -443,7 +443,7 @@ public:
 		for (int i = 0; i < dx; i++) {
 			for (int j = 0; j < dy; j++) {
 				for (int k = 0; k < dz; k++) {
-					volume.at<cv::Vec3b>(j * dz + k, i) = cv::Vec3b{static_cast<uchar>(vol_access(i, j, k).color[0]), static_cast<uchar>(vol_access(i, j, k).color[1]), static_cast<uchar>(vol_access(i, j, k).color[2])};
+					volume.at<cv::Vec3b>(k * dy + j, i) = cv::Vec3b{static_cast<uchar>(vol_access(i, j, k).color[0]), static_cast<uchar>(vol_access(i, j, k).color[1]), static_cast<uchar>(vol_access(i, j, k).color[2])};
 				}
 			}
 		}
@@ -479,7 +479,7 @@ public:
 		for (int i = 0; i < dx; i++) {
 			for (int j = 0; j < dy; j++) {
 				for (int k = zStart; k < zEnd; k++) {
-					volume.at<cv::Vec<short, 2>>(j * dz + k, i) = cv::Vec<short, 2>{static_cast<short>(vol_access(i, j, k).sdf), static_cast<short>(vol_access(i, j, k).weight)};
+					volume.at<cv::Vec<short, 2>>(k * dy + j, i) = cv::Vec<short, 2>{static_cast<short>(vol_access(i, j, k).sdf), static_cast<short>(vol_access(i, j, k).weight)};
 				}
 			}
 		}
@@ -514,7 +514,7 @@ public:
 		for (int i = 0; i < dx; i++) {
 			for (int j = 0; j < dy; j++) {
 				for (int k = zStart; k < zEnd; k++) {
-					volume.at<cv::Vec3b>(j * dz + k, i) = cv::Vec3b{
+					volume.at<cv::Vec3b>(k * dy + j, i) = cv::Vec3b{
 						static_cast<uchar>(vol_access(i, j, k).color[0]),
 						static_cast<uchar>(vol_access(i, j, k).color[1]),
 						static_cast<uchar>(vol_access(i, j, k).color[2])
