@@ -45,3 +45,7 @@ struct Point {
 void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, Eigen::Matrix4f current_pose, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces);
 
 void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, const float tsdf_min, const float tsdf_max, int& numVertices, float voxel_scale, bool showFaces);
+
+void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, Eigen::Matrix4f current_pose, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces);
+
+void saveColorPointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, bool showFaces);

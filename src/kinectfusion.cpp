@@ -83,8 +83,6 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     // volumedata.tsdf_volume = volume.getVolume();
     // volumedata.color_volume = volume.getColorVolume();
 
-    // createAndSavePointCloud(volumedata.tsdf_volume, "pointcloud.ply", configuration.volume_size);
-
     auto start = std::chrono::high_resolution_clock::now(); // start time measurement
 
     volumedata.tsdf_volume = volume.getVolumeData();
@@ -98,8 +96,10 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     start = std::chrono::high_resolution_clock::now(); // start time measurement
 
+    // createAndSavePointCloud(volumedata.tsdf_volume, "pointcloud.ply", configuration.volume_size);
     // createAndSavePointCloudVolumeData(volumedata.tsdf_volume, current_pose, "VolumeData_PointCloud.ply", configuration.volume_size, true);
     createAndSavePointCloudVolumeData_multi_threads(volumedata.tsdf_volume, current_pose, "VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+    createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, current_pose, "VolumeData_ColorPointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
 
     auto end_save = std::chrono::high_resolution_clock::now(); // end time measurement
     std::chrono::duration<double, std::milli> elapsed_save = end_save - start; // elapsed time in milliseconds
@@ -338,6 +338,195 @@ void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::stri
                     point.r = static_cast<unsigned char>((1.0f - normalized_tsdf) * 255); // Magenta component decreases with TSDF
                     point.g = static_cast<unsigned char>(normalized_tsdf * 255); // Green component increases with TSDF
                     point.b = static_cast<unsigned char>((1.0f - normalized_tsdf) * 255); // Magenta component decreases with TSDF
+ 
+                    // Write the point
+                    tempFile << point.x << " " << point.y << " " << point.z << " "
+                            << static_cast<int>(point.r) << " "
+                            << static_cast<int>(point.g) << " "
+                            << static_cast<int>(point.b) << "\n";
+
+                    // Increment the vertex count
+                    ++numVertices;
+                }
+            }
+        }
+    }
+    tempFile.close();
+}
+
+void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMatrix, Eigen::Matrix4f current_pose, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
+    // Keep track of the number of vertices
+    int numVertices = 0;
+    int dx = volume_size[0];
+    int dy = volume_size[1];
+    int dz = volume_size[2];
+
+    int numThreads = std::thread::hardware_concurrency();
+    std::vector<std::thread> threads(numThreads);
+    int zStep = dz / numThreads;
+    std::vector<int> numVerticesVec(numThreads, 0);
+    std::vector<std::string> tempFilenames(numThreads);
+
+    for (int i = 0; i < numThreads; ++i) {
+        tempFilenames[i] = "temp_" + std::to_string(i) + ".ply";
+        int zStart = i * zStep;
+        int zEnd = (i + 1) * zStep;
+        if (i == numThreads - 1) zEnd = dz;
+        threads[i] = std::thread(saveColorPointCloudProcessVolumeSlice, std::ref(colorMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, std::ref(numVerticesVec[i]), voxel_scale, showFaces);
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    for (int nv : numVerticesVec) {
+        numVertices += nv;
+    }
+
+    // Show the camera pose in the .ply file
+    // Camera pyramid size
+    const float pyramidBaseSize = 100.f; // size of base
+    const float pyramidHeight = 200.f;   // height of pyramid
+
+    // The base vertex of the pyramid, relative to the camera center
+    Eigen::Matrix<float, 4, 3> pyramidBase;
+    pyramidBase <<
+        -pyramidBaseSize, -pyramidBaseSize, pyramidHeight,
+        pyramidBaseSize, -pyramidBaseSize, pyramidHeight,
+        pyramidBaseSize, pyramidBaseSize, pyramidHeight,
+        -pyramidBaseSize, pyramidBaseSize, pyramidHeight;
+
+    // apex of pyramid
+    Eigen::Vector3f pyramidApex(0, 0, 0);
+
+    // Transform base and vertices to world coordinate system
+    for (int i = 0; i < 4; ++i) {
+        pyramidBase.row(i) = (current_pose * Eigen::Vector4f(pyramidBase.row(i).x(), pyramidBase.row(i).y(), pyramidBase.row(i).z(), 1)).head<3>();
+    }
+    pyramidApex = (current_pose * Eigen::Vector4f(pyramidApex.x(), pyramidApex.y(), pyramidApex.z(), 1)).head<3>();
+
+    std::ofstream tempFilePyramid("tempFilePyramid.ply");
+
+    // Write the pyramid vertices to the file
+    for (int i = 0; i < 4; ++i) {
+        tempFilePyramid << pyramidBase(i, 0) << " " << pyramidBase(i, 1) << " " << pyramidBase(i, 2) << " 0 0 255\n"; // blue base
+        ++numVertices;
+    }
+    tempFilePyramid << pyramidApex.x() << " " << pyramidApex.y() << " " << pyramidApex.z() << " 255 0 0\n"; // red apex
+    ++numVertices;
+
+    const int lineResolution = 50; // Number of points along each line
+
+    // Generate and write points along the edges of the pyramid base
+    for (int i = 0; i < 4; ++i) {
+        Eigen::Vector3f baseVertexStart = pyramidBase.row(i);
+        Eigen::Vector3f baseVertexEnd = pyramidBase.row((i + 1) % 4); // 循环连接到下一个顶点
+
+        for (int j = 0; j <= lineResolution; ++j) {
+            float t = static_cast<float>(j) / static_cast<float>(lineResolution);
+            Eigen::Vector3f pointOnBaseLine = baseVertexStart + t * (baseVertexEnd - baseVertexStart);
+
+            // Write the point on the base edge line
+            tempFilePyramid << pointOnBaseLine.x() << " " << pointOnBaseLine.y() << " " << pointOnBaseLine.z() << " 255 255 0\n"; // yellow line
+            ++numVertices;
+        }
+    }
+
+    // Generate and write points along the lines from the pyramid base to the apex
+    for (int i = 0; i < 4; ++i) {
+        Eigen::Vector3f baseVertex = pyramidBase.row(i);
+        for (int j = 0; j <= lineResolution; ++j) {
+            float t = static_cast<float>(j) / static_cast<float>(lineResolution);
+            Eigen::Vector3f pointOnLine = baseVertex + t * (pyramidApex - baseVertex);
+
+            // Write the point on line to the apex
+            tempFilePyramid << pointOnLine.x() << " " << pointOnLine.y() << " " << pointOnLine.z() << " 255 255 0\n"; // yellow line
+            ++numVertices;
+        }
+    }
+
+    std::ofstream plyFile(outputFilename);
+    if (!plyFile.is_open()) {
+        std::cerr << "Unable to open file: " << outputFilename << std::endl;
+        return;
+    }
+
+    plyFile << "ply\nformat ascii 1.0\n";
+    plyFile << "element vertex " << numVertices << "\n";
+    plyFile << "property float x\nproperty float y\nproperty float z\nproperty uchar red\nproperty uchar green\nproperty uchar blue\n";
+    plyFile << "end_header\n";
+
+    for (const auto& tempFilename : tempFilenames) {
+        std::ifstream tempFile(tempFilename);
+        if (tempFile.good()) {
+            plyFile << tempFile.rdbuf();
+            tempFile.close();
+            std::remove(tempFilename.c_str());
+        } else {
+            std::cerr << "Error reading temporary file: " << tempFilename << std::endl;
+        }
+    }
+    tempFilePyramid.close();
+    std::ifstream readTempFilePyramid("tempFilePyramid.ply");
+    if (readTempFilePyramid.good()) {
+        plyFile << readTempFilePyramid.rdbuf();
+        readTempFilePyramid.close();
+    } else {
+        std::cerr << "Error reading temporary file for pyramid: tempFilePyramid.ply" << std::endl;
+    }
+
+    plyFile.close();
+    std::remove("tempFilePyramid.ply");
+}
+
+void saveColorPointCloudProcessVolumeSlice(const cv::Mat& colorMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, bool showFaces) {
+    std::ofstream tempFile(tempFilename);
+    if (!tempFile.is_open()) {
+        std::cerr << "Unable to open temporary file: " << tempFilename << std::endl;
+        return;
+    }
+
+    for (int i = 0; i < dx; ++i) {
+        for (int j = 0; j < dy; ++j) {
+            for (int k = zStart; k < zEnd; ++k) {
+                if ( (i==0 || j==0 || k==0 || i==dx-1 || j==dy-1 || k==dz-1) && showFaces && (i%4==3 && j%4==3 && k%4==3)){
+                    Point point;
+                    point.x = (i - dx/2) * voxel_scale;
+                    point.y = (j - dy/2) * voxel_scale;
+                    point.z = (k - dz/2) * voxel_scale;
+
+                    // show the faces of the volume
+                    point.r = static_cast<unsigned char>(255);
+                    point.g = static_cast<unsigned char>(255);
+                    point.b = static_cast<unsigned char>(255);
+
+                    // Write the point
+                    tempFile << point.x << " " << point.y << " " << point.z << " "
+                            << static_cast<int>(point.r) << " "
+                            << static_cast<int>(point.g) << " "
+                            << static_cast<int>(point.b) << "\n";
+
+                    // Increment the vertex count
+                    ++numVertices;
+                }
+                else
+                {
+                    // Retrieve the color value
+                    cv::Vec3b colorValue = colorMatrix.at<cv::Vec3b>(j * dz + k, i);
+
+                    if (colorValue == cv::Vec3b{0, 0, 0}) {
+                        // Skip invalid color values
+                        continue;
+                    }
+
+                    Point point;
+                    point.x = (i - dx/2) * voxel_scale;
+                    point.y = (j - dy/2) * voxel_scale;
+                    point.z = (k - dz/2) * voxel_scale;
+
+                    point.r = colorValue[2];
+                    point.g = colorValue[1];
+                    point.b = colorValue[0];
  
                     // Write the point
                     tempFile << point.x << " " << point.y << " " << point.z << " "
