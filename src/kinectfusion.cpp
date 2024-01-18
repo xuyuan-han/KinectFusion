@@ -85,8 +85,10 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     auto start = std::chrono::high_resolution_clock::now(); // start time measurement
 
-    volumedata.tsdf_volume = volume.getVolumeData();
-    volumedata.color_volume = volume.getColorVolumeData();
+    // volumedata.tsdf_volume = volume.getVolumeData();
+    // volumedata.color_volume = volume.getColorVolumeData();
+    volumedata.tsdf_volume = volume.getVolumeData_multi_threads();
+    volumedata.color_volume = volume.getColorVolumeData_multi_threads();
 
     // std::cout << volumedata.color_volume << std::endl;
 

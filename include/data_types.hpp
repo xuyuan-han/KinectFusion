@@ -9,6 +9,7 @@
 #include <fstream>
 #include <chrono>
 #include <thread>
+#include <functional>
 
 using Vector4uc = Eigen::Matrix<unsigned char, 4, 1>;
 
@@ -446,6 +447,81 @@ public:
 		}
 		return volume;	
 	}
+
+	cv::Mat getVolumeData_multi_threads() {
+		int sizes[2] = { static_cast<int>(dy * dz), static_cast<int>(dx) };
+		cv::Mat volume = cv::Mat(2, sizes, CV_16SC2);
+
+		int numThreads = std::thread::hardware_concurrency();
+		std::vector<std::thread> threads(numThreads);
+		int zStep = dz / numThreads;
+
+		for (int i = 0; i < numThreads; ++i) {
+			int zStart = i * zStep;
+			int zEnd = (i + 1) * zStep;
+			if (i == numThreads - 1) {
+				zEnd = dz;
+			}
+			auto boundFunc = std::bind(&Volume::getVolumeData_processVolumeSlice, this, std::ref(volume), dx, dy, dz, zStart, zEnd);
+			threads[i] = std::thread(boundFunc);
+		}
+
+		for (auto& thread : threads) {
+			thread.join();
+		}
+
+		return volume;
+	}
+
+	void getVolumeData_processVolumeSlice(cv::Mat& volume, int dx, int dy, int dz, int zStart, int zEnd) {
+		for (int i = 0; i < dx; i++) {
+			for (int j = 0; j < dy; j++) {
+				for (int k = zStart; k < zEnd; k++) {
+					volume.at<cv::Vec<short, 2>>(j * dz + k, i) = cv::Vec<short, 2>{static_cast<short>(vol_access(i, j, k).sdf), static_cast<short>(vol_access(i, j, k).weight)};
+				}
+			}
+		}
+	}
+
+	cv::Mat getColorVolumeData_multi_threads() {
+		int sizes[2] = { static_cast<int>(dy * dz), static_cast<int>(dx) };
+		cv::Mat volume = cv::Mat(2, sizes, CV_8UC3);
+
+		int numThreads = std::thread::hardware_concurrency();
+		std::vector<std::thread> threads(numThreads);
+		int zStep = dz / numThreads;
+
+		for (int i = 0; i < numThreads; ++i) {
+			int zStart = i * zStep;
+			int zEnd = (i + 1) * zStep;
+			if (i == numThreads - 1) {
+				zEnd = dz;
+			}
+			auto boundFunc = std::bind(&Volume::getColorVolumeData_processColorVolumeSlice, this, std::ref(volume), dx, dy, dz, zStart, zEnd);
+			threads[i] = std::thread(boundFunc);
+		}
+
+		for (auto& thread : threads) {
+			thread.join();
+		}
+
+		return volume;
+	}
+
+	void getColorVolumeData_processColorVolumeSlice(cv::Mat& volume, int dx, int dy, int dz, int zStart, int zEnd) {
+		for (int i = 0; i < dx; i++) {
+			for (int j = 0; j < dy; j++) {
+				for (int k = zStart; k < zEnd; k++) {
+					volume.at<cv::Vec3b>(j * dz + k, i) = cv::Vec3b{
+						static_cast<uchar>(vol_access(i, j, k).color[0]),
+						static_cast<uchar>(vol_access(i, j, k).color[1]),
+						static_cast<uchar>(vol_access(i, j, k).color[2])
+					};
+				}
+			}
+		}
+	}
+
 };
 
 struct Frame {

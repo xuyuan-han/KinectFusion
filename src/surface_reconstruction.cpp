@@ -39,6 +39,33 @@ void Surface_Reconstruction::reconstructionProcessVolumeSlice(Volume* vol, cv::M
             for (int x = 0; x < vol->getDimX(); x++) {
 				// Indices to world coordinates
 				Eigen::Vector3d worldPoint = vol->pos(x, y, z);
+
+				// print the world point coordinates of voxel at vertex of the volume
+				// if (x == 0 && y == 0 && z == 0) {
+				// 	std::cout << "worldPoint (0,0,0): " << worldPoint << std::endl; 
+				// }
+				// else if (x == 0 && y == 0 && z == vol->getDimZ() - 1) {
+				// 	std::cout << "worldPoint (0,0,max): " << worldPoint << std::endl;
+				// }
+				// else if (x == 0 && y == vol->getDimY() - 1 && z == 0) {
+				// 	std::cout << "worldPoint (0,max,0): " << worldPoint << std::endl;
+				// }
+				// else if (x == 0 && y == vol->getDimY() - 1 && z == vol->getDimZ() - 1) {
+				// 	std::cout << "worldPoint (0,max,max): " << worldPoint << std::endl;
+				// }
+				// else if (x == vol->getDimX() - 1 && y == 0 && z == 0) {
+				// 	std::cout << "worldPoint (max,0,0): " << worldPoint << std::endl;
+				// }
+				// else if (x == vol->getDimX() - 1 && y == 0 && z == vol->getDimZ() - 1) {
+				// 	std::cout << "worldPoint (max,0,max): " << worldPoint << std::endl;
+				// }
+				// else if (x == vol->getDimX() - 1 && y == vol->getDimY() - 1 && z == 0) {
+				// 	std::cout << "worldPoint (max,max,0): " << worldPoint << std::endl;
+				// }
+				// else if (x == vol->getDimX() - 1 && y == vol->getDimY() - 1 && z == vol->getDimZ() - 1) {
+				// 	std::cout << "worldPoint (max,max,max): " << worldPoint << std::endl;
+				// }
+		
 				// To Homogeneous coordinates
 				Eigen::Vector4f worldPointH = Eigen::Vector4f(worldPoint[0], worldPoint[1], worldPoint[2], 1);
 				// To camera frame coordinates
