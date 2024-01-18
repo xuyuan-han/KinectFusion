@@ -80,9 +80,13 @@ void Surface_Reconstruction::reconstructionProcessVolumeSlice(Volume* vol, cv::M
 							}
 							Vector4uc oldColor = vol->getVoxel(x, y, z).color;
 							Vector4uc color = Vector4uc();
-							color[0] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[0];
-							color[1] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[1];
-							color[2] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[2];
+							// color[0] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[0];
+							// color[1] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[1];
+							// color[2] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[2];
+							color[0] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[0];
+							color[1] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[1];
+							color[2] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[2];
+
 							// for now just use the color of the voxel
 							// color[0] = 255;
 							// color[1] = 255;
