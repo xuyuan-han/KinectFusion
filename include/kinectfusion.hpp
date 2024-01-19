@@ -18,6 +18,7 @@ public:
     cv::Mat get_last_model_color_frame() const;
     cv::Mat get_last_model_vertex_frame() const;
     cv::Mat get_last_model_normal_frame() const;
+    void save_tsdf_color_volume_point_cloud() const;
     
 private:
     const CameraParameters camera_parameters;

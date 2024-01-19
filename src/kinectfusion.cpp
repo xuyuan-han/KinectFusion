@@ -22,7 +22,7 @@ Pipeline::Pipeline(const CameraParameters _camera_parameters,
 
 bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map)
 {
-    std::cout << ">> 1 Surface measurement begin" << std::endl;
+    // std::cout << ">> 1 Surface measurement begin" << std::endl;
 
     FrameData frame_data = surface_measurement(
         depth_map,
@@ -36,10 +36,10 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     // std::cout << frame_data.depth_pyramid[0] << std::endl;
 
 
-    std::cout << "Pose before ICP: \n" << current_pose << std::endl;
-    std::cout << ">>> 1 Surface measurement done" << std::endl;
+    // std::cout << "Pose before ICP: \n" << current_pose << std::endl;
+    // std::cout << ">>> 1 Surface measurement done" << std::endl;
 
-    std::cout << ">> 2 Pose estimation begin" << std::endl;
+    // std::cout << ">> 2 Pose estimation begin" << std::endl;
 
     bool icp_success { true };
     if (frame_id > 0) { // Do not perform ICP for the very first frame
@@ -57,9 +57,9 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         return false;
     poses.push_back(current_pose);
 
-    std::cout << ">>> 2 Pose estimation done" << std::endl;
+    // std::cout << ">>> 2 Pose estimation done" << std::endl;
 
-    std::cout << ">> 3 Surface reconstruction begin" << std::endl;
+    // std::cout << ">> 3 Surface reconstruction begin" << std::endl;
 
     // Surface_Reconstruction::integrate(
     //     frame_data.depth_pyramid[0],
@@ -76,9 +76,9 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         configuration.truncation_distance,
         current_pose);
 
-    std::cout << ">>> 3 Surface reconstruction done" << std::endl;
+    // std::cout << ">>> 3 Surface reconstruction done" << std::endl;
 
-    std::cout << ">> 3.5 Point cloud generation begin" << std::endl;
+    // std::cout << ">> 3.5 Point cloud generation begin" << std::endl;
 
     // volumedata.tsdf_volume = volume.getVolume();
     // volumedata.color_volume = volume.getColorVolume();
@@ -94,22 +94,13 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     auto end_transfer = std::chrono::high_resolution_clock::now(); // end time measurement
     std::chrono::duration<double, std::milli> elapsed_transfer = end_transfer - start; // elapsed time in milliseconds
-    std::cout << "-- Volumedata transfer time: " << elapsed_transfer.count() << " ms\n";
+    std::cout << "-- Volumedata transfer: " << elapsed_transfer.count() << " ms\n";
 
-    start = std::chrono::high_resolution_clock::now(); // start time measurement
+    // save_tsdf_color_volume_point_cloud();
 
-    // createAndSavePointCloud(volumedata.tsdf_volume, "pointcloud.ply", configuration.volume_size);
-    // createAndSavePointCloudVolumeData(volumedata.tsdf_volume, current_pose, "VolumeData_PointCloud.ply", configuration.volume_size, true);
-    createAndSavePointCloudVolumeData_multi_threads(volumedata.tsdf_volume, current_pose, "VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
-    createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, current_pose, "VolumeData_ColorPointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+    // std::cout << ">>> 3.5 Point cloud generation done" << std::endl;
 
-    auto end_save = std::chrono::high_resolution_clock::now(); // end time measurement
-    std::chrono::duration<double, std::milli> elapsed_save = end_save - start; // elapsed time in milliseconds
-    std::cout << "-- Save point cloud time: " << elapsed_save.count() << " ms\n";
-
-    std::cout << ">>> 3.5 Point cloud generation done" << std::endl;
-
-    std::cout << ">> 4 Surface prediction begin" << std::endl;
+    // std::cout << ">> 4 Surface prediction begin" << std::endl;
 
     for (int level = 0; level < configuration.num_levels; ++level){
         // std::cout << ">> 4 (level)" << level << " Surface prediction begin" << std::endl;
@@ -124,7 +115,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         // std::cout << ">> 4 (level)" << level << " Surface prediction done" << std::endl;
     }
 
-    std::cout << ">>> 4 Surface prediction done" << std::endl;
+    // std::cout << ">>> 4 Surface prediction done" << std::endl;
 
     last_model_color_frame = model_data.color_pyramid[0];
     last_model_vertex_frame = model_data.vertex_pyramid[0];
@@ -153,6 +144,20 @@ cv::Mat Pipeline::get_last_model_vertex_frame() const
 cv::Mat Pipeline::get_last_model_normal_frame() const
 {
     return last_model_normal_frame;
+}
+
+void Pipeline::save_tsdf_color_volume_point_cloud() const
+{
+    auto start = std::chrono::high_resolution_clock::now(); // start time measurement
+
+    // createAndSavePointCloud(volumedata.tsdf_volume, "pointcloud.ply", configuration.volume_size);
+    // createAndSavePointCloudVolumeData(volumedata.tsdf_volume, current_pose, "VolumeData_PointCloud.ply", configuration.volume_size, true);
+    createAndSavePointCloudVolumeData_multi_threads(volumedata.tsdf_volume, current_pose, "VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+    createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, current_pose, "VolumeData_ColorPointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+
+    auto end_save = std::chrono::high_resolution_clock::now(); // end time measurement
+    std::chrono::duration<double, std::milli> elapsed_save = end_save - start; // elapsed time in milliseconds
+    std::cout << "-- Save point cloud time: " << elapsed_save.count() << " ms\n";
 }
 
 void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, Eigen::Matrix4f current_pose, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
