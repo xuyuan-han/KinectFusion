@@ -23,7 +23,7 @@ int main(int argc, char **argv)
     cameraparameters.image_width=sensor.getDepthImageWidth();
     cameraparameters.image_height=sensor.getDepthImageHeight();
 
-    unsigned int frameCnt = 50; // Process frameCnt frames
+    unsigned int frameCnt = 10; // Process frameCnt frames
 
     Pipeline pipeline {cameraparameters, configuration};
     while(sensor.processNextFrame()){

@@ -152,15 +152,15 @@ void Pipeline::save_tsdf_color_volume_point_cloud() const
 
     // createAndSavePointCloud(volumedata.tsdf_volume, "pointcloud.ply", configuration.volume_size);
     // createAndSavePointCloudVolumeData(volumedata.tsdf_volume, current_pose, "VolumeData_PointCloud.ply", configuration.volume_size, true);
-    createAndSavePointCloudVolumeData_multi_threads(volumedata.tsdf_volume, current_pose, "VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
-    createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, current_pose, "VolumeData_ColorPointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+    createAndSavePointCloudVolumeData_multi_threads(volumedata.tsdf_volume, poses, "VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+    createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, poses, "VolumeData_ColorPointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
 
     auto end_save = std::chrono::high_resolution_clock::now(); // end time measurement
     std::chrono::duration<double, std::milli> elapsed_save = end_save - start; // elapsed time in milliseconds
     std::cout << "-- Save point cloud time: " << elapsed_save.count() << " ms\n";
 }
 
-void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, Eigen::Matrix4f current_pose, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
+void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
     // Keep track of the number of vertices
     int numVertices = 0;
     int dx = volume_size[0];
@@ -191,67 +191,12 @@ void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, 
     for (int nv : numVerticesVec) {
         numVertices += nv;
     }
-
-    // Show the camera pose in the .ply file
-    // Camera pyramid size
-    const float pyramidBaseSize = 100.f; // size of base
-    const float pyramidHeight = 200.f;   // height of pyramid
-
-    // The base vertex of the pyramid, relative to the camera center
-    Eigen::Matrix<float, 4, 3> pyramidBase;
-    pyramidBase <<
-        -pyramidBaseSize, -pyramidBaseSize, pyramidHeight,
-        pyramidBaseSize, -pyramidBaseSize, pyramidHeight,
-        pyramidBaseSize, pyramidBaseSize, pyramidHeight,
-        -pyramidBaseSize, pyramidBaseSize, pyramidHeight;
-
-    // apex of pyramid
-    Eigen::Vector3f pyramidApex(0, 0, 0);
-
-    // Transform base and vertices to world coordinate system
-    for (int i = 0; i < 4; ++i) {
-        pyramidBase.row(i) = (current_pose * Eigen::Vector4f(pyramidBase.row(i).x(), pyramidBase.row(i).y(), pyramidBase.row(i).z(), 1)).head<3>();
-    }
-    pyramidApex = (current_pose * Eigen::Vector4f(pyramidApex.x(), pyramidApex.y(), pyramidApex.z(), 1)).head<3>();
-
-    std::ofstream tempFilePyramid("tempFilePyramid.ply");
-
-    // Write the pyramid vertices to the file
-    for (int i = 0; i < 4; ++i) {
-        tempFilePyramid << pyramidBase(i, 0) << " " << pyramidBase(i, 1) << " " << pyramidBase(i, 2) << " 0 0 255\n"; // blue base
-        ++numVertices;
-    }
-    tempFilePyramid << pyramidApex.x() << " " << pyramidApex.y() << " " << pyramidApex.z() << " 255 0 0\n"; // red apex
-    ++numVertices;
-
-    const int lineResolution = 50; // Number of points along each line
-
-    // Generate and write points along the edges of the pyramid base
-    for (int i = 0; i < 4; ++i) {
-        Eigen::Vector3f baseVertexStart = pyramidBase.row(i);
-        Eigen::Vector3f baseVertexEnd = pyramidBase.row((i + 1) % 4); // 循环连接到下一个顶点
-
-        for (int j = 0; j <= lineResolution; ++j) {
-            float t = static_cast<float>(j) / static_cast<float>(lineResolution);
-            Eigen::Vector3f pointOnBaseLine = baseVertexStart + t * (baseVertexEnd - baseVertexStart);
-
-            // Write the point on the base edge line
-            tempFilePyramid << pointOnBaseLine.x() << " " << pointOnBaseLine.y() << " " << pointOnBaseLine.z() << " 255 255 0\n"; // yellow line
-            ++numVertices;
-        }
-    }
-
-    // Generate and write points along the lines from the pyramid base to the apex
-    for (int i = 0; i < 4; ++i) {
-        Eigen::Vector3f baseVertex = pyramidBase.row(i);
-        for (int j = 0; j <= lineResolution; ++j) {
-            float t = static_cast<float>(j) / static_cast<float>(lineResolution);
-            Eigen::Vector3f pointOnLine = baseVertex + t * (pyramidApex - baseVertex);
-
-            // Write the point on line to the apex
-            tempFilePyramid << pointOnLine.x() << " " << pointOnLine.y() << " " << pointOnLine.z() << " 255 255 0\n"; // yellow line
-            ++numVertices;
-        }
+    
+    std::vector<std::string> camera_pose_tempFilenames(poses.size());
+    for (int i = 0; i < poses.size(); ++i) {
+        // save the camera pose in the .ply file
+        camera_pose_tempFilenames[i] = "camera_pose_tempFile_" + std::to_string(i) + ".ply";
+        numVertices = save_camera_pose_point_cloud(poses[i], numVertices, camera_pose_tempFilenames[i]);
     }
 
     std::ofstream plyFile(outputFilename);
@@ -275,17 +220,19 @@ void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, 
             std::cerr << "Error reading temporary file: " << tempFilename << std::endl;
         }
     }
-    tempFilePyramid.close();
-    std::ifstream readTempFilePyramid("tempFilePyramid.ply");
-    if (readTempFilePyramid.good()) {
-        plyFile << readTempFilePyramid.rdbuf();
-        readTempFilePyramid.close();
-    } else {
-        std::cerr << "Error reading temporary file for pyramid: tempFilePyramid.ply" << std::endl;
+
+    for (const auto& camera_pose_tempFilename : camera_pose_tempFilenames) {
+        std::ifstream tempFilePyramid(camera_pose_tempFilename);
+        if (tempFilePyramid.good()) {
+            plyFile << tempFilePyramid.rdbuf();
+            tempFilePyramid.close();
+            std::remove(camera_pose_tempFilename.c_str());
+        } else {
+            std::cerr << "Error reading temporary file: " << camera_pose_tempFilename << std::endl;
+        }
     }
 
     plyFile.close();
-    std::remove("tempFilePyramid.ply");
 }
 
 void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, const float tsdf_min, const float tsdf_max, int& numVertices, float voxel_scale, bool showFaces) {
@@ -361,7 +308,7 @@ void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::stri
     tempFile.close();
 }
 
-void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMatrix, Eigen::Matrix4f current_pose, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
+void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
     // Keep track of the number of vertices
     int numVertices = 0;
     int dx = volume_size[0];
@@ -390,66 +337,11 @@ void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMa
         numVertices += nv;
     }
 
-    // Show the camera pose in the .ply file
-    // Camera pyramid size
-    const float pyramidBaseSize = 100.f; // size of base
-    const float pyramidHeight = 200.f;   // height of pyramid
-
-    // The base vertex of the pyramid, relative to the camera center
-    Eigen::Matrix<float, 4, 3> pyramidBase;
-    pyramidBase <<
-        -pyramidBaseSize, -pyramidBaseSize, pyramidHeight,
-        pyramidBaseSize, -pyramidBaseSize, pyramidHeight,
-        pyramidBaseSize, pyramidBaseSize, pyramidHeight,
-        -pyramidBaseSize, pyramidBaseSize, pyramidHeight;
-
-    // apex of pyramid
-    Eigen::Vector3f pyramidApex(0, 0, 0);
-
-    // Transform base and vertices to world coordinate system
-    for (int i = 0; i < 4; ++i) {
-        pyramidBase.row(i) = (current_pose * Eigen::Vector4f(pyramidBase.row(i).x(), pyramidBase.row(i).y(), pyramidBase.row(i).z(), 1)).head<3>();
-    }
-    pyramidApex = (current_pose * Eigen::Vector4f(pyramidApex.x(), pyramidApex.y(), pyramidApex.z(), 1)).head<3>();
-
-    std::ofstream tempFilePyramid("tempFilePyramid.ply");
-
-    // Write the pyramid vertices to the file
-    for (int i = 0; i < 4; ++i) {
-        tempFilePyramid << pyramidBase(i, 0) << " " << pyramidBase(i, 1) << " " << pyramidBase(i, 2) << " 0 0 255\n"; // blue base
-        ++numVertices;
-    }
-    tempFilePyramid << pyramidApex.x() << " " << pyramidApex.y() << " " << pyramidApex.z() << " 255 0 0\n"; // red apex
-    ++numVertices;
-
-    const int lineResolution = 50; // Number of points along each line
-
-    // Generate and write points along the edges of the pyramid base
-    for (int i = 0; i < 4; ++i) {
-        Eigen::Vector3f baseVertexStart = pyramidBase.row(i);
-        Eigen::Vector3f baseVertexEnd = pyramidBase.row((i + 1) % 4); // 循环连接到下一个顶点
-
-        for (int j = 0; j <= lineResolution; ++j) {
-            float t = static_cast<float>(j) / static_cast<float>(lineResolution);
-            Eigen::Vector3f pointOnBaseLine = baseVertexStart + t * (baseVertexEnd - baseVertexStart);
-
-            // Write the point on the base edge line
-            tempFilePyramid << pointOnBaseLine.x() << " " << pointOnBaseLine.y() << " " << pointOnBaseLine.z() << " 255 255 0\n"; // yellow line
-            ++numVertices;
-        }
-    }
-
-    // Generate and write points along the lines from the pyramid base to the apex
-    for (int i = 0; i < 4; ++i) {
-        Eigen::Vector3f baseVertex = pyramidBase.row(i);
-        for (int j = 0; j <= lineResolution; ++j) {
-            float t = static_cast<float>(j) / static_cast<float>(lineResolution);
-            Eigen::Vector3f pointOnLine = baseVertex + t * (pyramidApex - baseVertex);
-
-            // Write the point on line to the apex
-            tempFilePyramid << pointOnLine.x() << " " << pointOnLine.y() << " " << pointOnLine.z() << " 255 255 0\n"; // yellow line
-            ++numVertices;
-        }
+    std::vector<std::string> camera_pose_tempFilenames(poses.size());
+    for (int i = 0; i < poses.size(); ++i) {
+        // save the camera pose in the .ply file
+        camera_pose_tempFilenames[i] = "camera_pose_tempFile_" + std::to_string(i) + ".ply";
+        numVertices = save_camera_pose_point_cloud(poses[i], numVertices, camera_pose_tempFilenames[i]);
     }
 
     std::ofstream plyFile(outputFilename);
@@ -473,17 +365,19 @@ void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMa
             std::cerr << "Error reading temporary file: " << tempFilename << std::endl;
         }
     }
-    tempFilePyramid.close();
-    std::ifstream readTempFilePyramid("tempFilePyramid.ply");
-    if (readTempFilePyramid.good()) {
-        plyFile << readTempFilePyramid.rdbuf();
-        readTempFilePyramid.close();
-    } else {
-        std::cerr << "Error reading temporary file for pyramid: tempFilePyramid.ply" << std::endl;
+
+    for (const auto& camera_pose_tempFilename : camera_pose_tempFilenames) {
+        std::ifstream tempFilePyramid(camera_pose_tempFilename);
+        if (tempFilePyramid.good()) {
+            plyFile << tempFilePyramid.rdbuf();
+            tempFilePyramid.close();
+            std::remove(camera_pose_tempFilename.c_str());
+        } else {
+            std::cerr << "Error reading temporary file: " << camera_pose_tempFilename << std::endl;
+        }
     }
 
     plyFile.close();
-    std::remove("tempFilePyramid.ply");
 }
 
 void saveColorPointCloudProcessVolumeSlice(const cv::Mat& colorMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, bool showFaces) {
@@ -548,6 +442,72 @@ void saveColorPointCloudProcessVolumeSlice(const cv::Mat& colorMatrix, const std
         }
     }
     tempFile.close();
+}
+
+int save_camera_pose_point_cloud(Eigen::Matrix4f current_pose, int numVertices, std::string outputFilename){
+    // Show the camera pose in the .ply file
+    // Camera pyramid size
+    const float pyramidBaseSize = 100.f; // size of base
+    const float pyramidHeight = 200.f;   // height of pyramid
+
+    // The base vertex of the pyramid, relative to the camera center
+    Eigen::Matrix<float, 4, 3> pyramidBase;
+    pyramidBase <<
+        -pyramidBaseSize, -pyramidBaseSize, pyramidHeight,
+        pyramidBaseSize, -pyramidBaseSize, pyramidHeight,
+        pyramidBaseSize, pyramidBaseSize, pyramidHeight,
+        -pyramidBaseSize, pyramidBaseSize, pyramidHeight;
+
+    // apex of pyramid
+    Eigen::Vector3f pyramidApex(0, 0, 0);
+
+    // Transform base and vertices to world coordinate system
+    for (int i = 0; i < 4; ++i) {
+        pyramidBase.row(i) = (current_pose * Eigen::Vector4f(pyramidBase.row(i).x(), pyramidBase.row(i).y(), pyramidBase.row(i).z(), 1)).head<3>();
+    }
+    pyramidApex = (current_pose * Eigen::Vector4f(pyramidApex.x(), pyramidApex.y(), pyramidApex.z(), 1)).head<3>();
+
+    std::ofstream tempFilePyramid(outputFilename);
+
+    // Write the pyramid vertices to the file
+    for (int i = 0; i < 4; ++i) {
+        tempFilePyramid << pyramidBase(i, 0) << " " << pyramidBase(i, 1) << " " << pyramidBase(i, 2) << " 0 0 255\n"; // blue base
+        ++numVertices;
+    }
+    tempFilePyramid << pyramidApex.x() << " " << pyramidApex.y() << " " << pyramidApex.z() << " 255 0 0\n"; // red apex
+    ++numVertices;
+
+    const int lineResolution = 50; // Number of points along each line
+
+    // Generate and write points along the edges of the pyramid base
+    for (int i = 0; i < 4; ++i) {
+        Eigen::Vector3f baseVertexStart = pyramidBase.row(i);
+        Eigen::Vector3f baseVertexEnd = pyramidBase.row((i + 1) % 4);
+
+        for (int j = 0; j <= lineResolution; ++j) {
+            float t = static_cast<float>(j) / static_cast<float>(lineResolution);
+            Eigen::Vector3f pointOnBaseLine = baseVertexStart + t * (baseVertexEnd - baseVertexStart);
+
+            // Write the point on the base edge line
+            tempFilePyramid << pointOnBaseLine.x() << " " << pointOnBaseLine.y() << " " << pointOnBaseLine.z() << " 255 255 0\n"; // yellow line
+            ++numVertices;
+        }
+    }
+
+    // Generate and write points along the lines from the pyramid base to the apex
+    for (int i = 0; i < 4; ++i) {
+        Eigen::Vector3f baseVertex = pyramidBase.row(i);
+        for (int j = 0; j <= lineResolution; ++j) {
+            float t = static_cast<float>(j) / static_cast<float>(lineResolution);
+            Eigen::Vector3f pointOnLine = baseVertex + t * (pyramidApex - baseVertex);
+
+            // Write the point on line to the apex
+            tempFilePyramid << pointOnLine.x() << " " << pointOnLine.y() << " " << pointOnLine.z() << " 255 255 0\n"; // yellow line
+            ++numVertices;
+        }
+    }
+    tempFilePyramid.close();
+    return numVertices;
 }
 
 // void createAndSavePointCloud(const cv::Mat& tsdfMatrix, const std::string& outputFilename, Eigen::Vector3i volume_size) {
