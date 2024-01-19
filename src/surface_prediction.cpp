@@ -656,6 +656,10 @@ void raycast_tsdf_kernel_volume_slice(
                     model_vertex.at<cv::Vec3f>(y,x) = cv::Vec3f(vertex.x(), vertex.y(), vertex.z());
                     model_normal.at<cv::Vec3f>(y,x) = cv::Vec3f(normal.x(), normal.y(), normal.z());
 
+                    // if (y == 240 && x == 330){
+                    //     std::cout << "model vertex(" << x << ", " << y << "): \n" << model_vertex.at<cv::Vec3f>(y,x) << std::endl;
+                    // }
+
                     //save color
                     auto location_in_grid_int = location_in_grid.cast<int>();
 

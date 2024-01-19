@@ -607,7 +607,7 @@ struct VolumeData {
 
         // The distance (in mm) after which to set the depth in incoming depth frames to 0.
         // Can be used to separate an object you want to scan from the background
-        float depth_cutoff_distance { 1000.f };
+        float depth_cutoff_distance { 2500.f };
 
         // The number of pyramid levels to generate for each frame, including the original frame level
         int num_levels { 3 };
@@ -619,9 +619,10 @@ struct VolumeData {
 
         // ICP configuration
         // The distance threshold (as described in the paper) in mm
-        float distance_threshold { 10.f };
+        float distance_threshold { 40.f };
         // The angle threshold (as described in the paper) in degrees
         float angle_threshold { 20.f };
         // Number of ICP iterations for each level from original level 0 to highest scaled level (sparse to coarse)
-        std::vector<int> icp_iterations {10, 5, 4};
+        // std::vector<int> icp_iterations {10, 5, 4};
+        std::vector<int> icp_iterations {16, 8, 8};
     };

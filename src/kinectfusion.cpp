@@ -35,7 +35,16 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     frame_data.color_pyramid[0] = color_map;
     // std::cout << frame_data.depth_pyramid[0] << std::endl;
 
-
+    if (frame_id > 0){
+        // cv::imshow("frame_data.depth_pyramid[0]", frame_data.depth_pyramid[0]);
+        // cv::imshow("frame_data.color_pyramid[0]", frame_data.color_pyramid[0]);
+        cv::imshow("frame_data.vertex_pyramid[0]", frame_data.vertex_pyramid[0]);
+        cv::moveWindow("frame_data.vertex_pyramid[0]", frame_data.vertex_pyramid[0].cols, frame_data.vertex_pyramid[0].rows*2+80);
+        cv::imshow("frame_data.normal_pyramid[0]", frame_data.normal_pyramid[0]);
+        cv::moveWindow("frame_data.normal_pyramid[0]", frame_data.normal_pyramid[0].cols*2, frame_data.normal_pyramid[0].rows*2+80);
+        cv::waitKey(1);
+    }
+    
     // std::cout << "Pose before ICP: \n" << current_pose << std::endl;
     // std::cout << ">>> 1 Surface measurement done" << std::endl;
 
@@ -56,6 +65,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     if (!icp_success)
         return false;
     poses.push_back(current_pose);
+    // std::cout << "Pose after ICP: \n" << std::fixed << std::setprecision(2) << current_pose << std::endl;
 
     // std::cout << ">>> 2 Pose estimation done" << std::endl;
 

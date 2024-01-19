@@ -71,11 +71,14 @@ void compute_map(const cv::Mat_<float>& depthmap, const CameraParameters& camera
             {
                 depth=0.f;
             }
-            // Setting X, Y, and Z components of the 3D vecto
+            // Setting X, Y, and Z components of the 3D vector
             vertex[0] = (t - camera_params.principal_x) * depth / camera_params.focal_x;
             vertex[1] = (i - camera_params.principal_y) * depth / camera_params.focal_y;
             vertex[2] = depth;
-
+            // if(i == 240 && t == 330)
+            // {
+            //     std::cout << "frame vertex(" << t << ", " << i << "): \n" << vertex << std::endl;
+            // }
         }
     }
     // compute normal

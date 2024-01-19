@@ -23,7 +23,7 @@ int main(int argc, char **argv)
     cameraparameters.image_width=sensor.getDepthImageWidth();
     cameraparameters.image_height=sensor.getDepthImageHeight();
 
-    unsigned int frameCnt = 10; // Process frameCnt frames
+    unsigned int maxFrameCnt = 10; // Process maxFrameCnt frames
 
     Pipeline pipeline {cameraparameters, configuration};
     while(sensor.processNextFrame()){
@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 
         if (!success){
             std::cout << "--> Frame " << sensor.getCurrentFrameCnt() << " could not be processed" << std::endl;
-            break;
+            // break;
         }else{
             std::cout << "--> Frame " << sensor.getCurrentFrameCnt() << " processed: " << elapsed.count() << " ms" << std::endl;
         }
@@ -66,11 +66,12 @@ int main(int argc, char **argv)
         cv::imwrite(filenameOut + "SurfacePredictionOutputVertex_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", pipeline.get_last_model_vertex_frame());
         cv::imwrite(filenameOut + "SurfacePredictionOutputNormal_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", pipeline.get_last_model_normal_frame());
 
-        cv::waitKey(500);
+        cv::waitKey(100);
 
-        if (sensor.getCurrentFrameCnt() == frameCnt) {
+        if (sensor.getCurrentFrameCnt() == (maxFrameCnt-1)) {
             break;
         }
     }
     pipeline.save_tsdf_color_volume_point_cloud();
+    cv::waitKey(0);
 }
