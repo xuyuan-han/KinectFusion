@@ -65,6 +65,6 @@ int main(int argc, char **argv)
         cv::imwrite(filenameOut + "SurfacePredictionOutputVertex_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", pipeline.get_last_model_vertex_frame());
         cv::imwrite(filenameOut + "SurfacePredictionOutputNormal_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", pipeline.get_last_model_normal_frame());
 
-        cv::waitKey(0);
+        cv::waitKey(1000);
     }
 }

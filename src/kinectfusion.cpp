@@ -36,7 +36,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     // std::cout << frame_data.depth_pyramid[0] << std::endl;
 
 
-    // std::cout << "Pose before ICP: \n" << current_pose << std::endl;
+    std::cout << "Pose before ICP: \n" << current_pose << std::endl;
     std::cout << ">>> 1 Surface measurement done" << std::endl;
 
     std::cout << ">> 2 Pose estimation begin" << std::endl;

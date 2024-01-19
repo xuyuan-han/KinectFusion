@@ -19,6 +19,8 @@ bool pose_estimation(Eigen::Matrix4f& pose,
     // ICP loop, from coarse to sparse
     for (int level = pyramid_height - 1; level >= 0; --level) {
         for (int iteration = 0; iteration < iterations[level]; ++iteration) {
+            // std::cout << "-------------" << std::endl;
+            // std::cout << "ICP level: " << level << " iteration: " << iteration << std::endl;
             Eigen::Matrix<double, 6, 6, Eigen::RowMajor> A {};
             Eigen::Matrix<double, 6, 1> b {};
 
@@ -35,15 +37,26 @@ bool pose_estimation(Eigen::Matrix4f& pose,
 
             // std::cout << "ICP after estimate step" << std::endl;
 
-            // print matrix A and b
-            std::cout << "A: \n" << A << std::endl;
-            std::cout << "b: \n" << b << std::endl;
+            // std::cout << "A: \n" << std::fixed << std::setprecision(2) << A << std::endl;
+            // std::cout << "b: \n" << std::fixed << std::setprecision(2) << b << std::endl;
+            // std::cout << std::defaultfloat;
 
-            // Solve equation to get alpha, beta and gamma
-            double det = A.determinant();
-            if (fabs(det) < 1e-15 || std::isnan(det))
+            // Directly solve the linear system A * x = b to get alpha, beta and gamma
+            Eigen::Matrix<double, 6, 1> result_double = A.fullPivLu().solve(b);
+
+            // Verify if the solution satisfies the original equation system
+            Eigen::Matrix<double, 6, 1> residual = A * result_double - b;
+
+            // Cast result to float for further use
+            Eigen::Matrix<float, 6, 1> result = result_double.cast<float>();
+
+            // Set a threshold for checking the validity of the solution
+            double tolerance = 1e-5;
+            if (residual.norm() > tolerance) {
+                std::cout << "The solution does not satisfy the original equation system, indicating possible numerical issues or near-singularity of matrix A." << std::endl;
                 return false;
-            Eigen::Matrix<float, 6, 1> result { A.fullPivLu().solve(b).cast<float>() };
+            }
+
             float alpha = result(0);
             float beta = result(1);
             float gamma = result(2);
@@ -63,6 +76,13 @@ bool pose_estimation(Eigen::Matrix4f& pose,
             current_global_translation =
                     camera_rotation_incremental * current_global_translation + camera_translation_incremental;
             current_global_rotation = camera_rotation_incremental * current_global_rotation;
+
+            Eigen::Matrix4f current_global_pose = Eigen::Matrix4f::Identity();
+            current_global_pose.block(0, 0, 3, 3) = current_global_rotation;
+            current_global_pose.block(0, 3, 3, 1) = current_global_translation;
+            // std::cout << "Pose: \n" << current_global_pose << std::endl;
+            // std::cout << "Pose: \n" << std::fixed << std::setprecision(2) << current_global_pose << std::endl;
+            // std::cout << std::defaultfloat;
         }
     }
 
