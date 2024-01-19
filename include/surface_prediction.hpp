@@ -41,4 +41,16 @@ void surface_prediction(
     const float truncation_distance,            
     const Eigen::Matrix4f& pose);
 
-
+void raycast_tsdf_kernel_volume_slice(    
+    cv::Mat& tsdf_volume,                       // global TSDF Volume
+    cv::Mat& color_volume,                      // global color Volume
+    cv::Mat& model_vertex,                       
+    cv::Mat& model_normal,                        
+    cv::Mat& model_color,
+    const Eigen::Vector3i volume_size,
+    const float voxel_scale,
+    const CameraParameters& cam_parameters,
+    const float truncation_distance,
+    const Eigen::Matrix<float, 3, 3, Eigen::DontAlign> rotation,
+    const Eigen::Matrix<float, 3, 1, Eigen::DontAlign> translation,
+    int rowStart, int rowEnd);
