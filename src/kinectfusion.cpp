@@ -170,20 +170,17 @@ void Pipeline::save_tsdf_color_volume_point_cloud() const
 {
     // createAndSavePointCloud(volumedata.tsdf_volume, "pointcloud.ply", configuration.volume_size);
     // createAndSavePointCloudVolumeData(volumedata.tsdf_volume, current_pose, "VolumeData_PointCloud.ply", configuration.volume_size, true);
-    createAndSavePointCloudVolumeData_multi_threads(volumedata.tsdf_volume, poses, "VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+    createAndSavePointCloudVolumeData_multi_threads(volumedata.tsdf_volume, poses, "VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, configuration.truncation_distance, true);
     createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, poses, "VolumeData_ColorPointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
 }
 
 // multi threads version
-void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
+void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, float truncation_distance, bool showFaces) {
     // Keep track of the number of vertices
     int numVertices = 0;
     int dx = volume_size[0];
     int dy = volume_size[1];
     int dz = volume_size[2];
-
-    const float tsdf_min = -25.0f; // Minimum TSDF value
-    const float tsdf_max = 25.0f;  // Maximum TSDF value
 
     int numThreads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(numThreads);
@@ -196,7 +193,7 @@ void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, 
         int zStart = i * zStep;
         int zEnd = (i + 1) * zStep;
         if (i == numThreads - 1) zEnd = dz;
-        threads[i] = std::thread(savePointCloudProcessVolumeSlice, std::ref(tsdfMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, tsdf_min, tsdf_max, std::ref(numVerticesVec[i]), voxel_scale, showFaces);
+        threads[i] = std::thread(savePointCloudProcessVolumeSlice, std::ref(tsdfMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, std::ref(numVerticesVec[i]), voxel_scale, truncation_distance, showFaces);
     }
 
     for (auto& thread : threads) {
@@ -250,7 +247,7 @@ void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, 
     plyFile.close();
 }
 
-void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, const float tsdf_min, const float tsdf_max, int& numVertices, float voxel_scale, bool showFaces) {
+void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, float truncation_distance, bool showFaces) {
     std::ofstream tempFile(tempFilename);
     if (!tempFile.is_open()) {
         std::cerr << "Unable to open temporary file: " << tempFilename << std::endl;
@@ -290,32 +287,34 @@ void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::stri
                     //     std::cout << "(tsdfValue, weight): (" << tsdfValue << ", " << weight << ")" << std::endl;
                     // }
 
-                    if (abs(tsdfValue) > 25 || tsdfValue == 0) {
-                        // Skip invalid TSDF values
-                        continue;
+                    // if (abs(tsdfValue) > truncation_distance || tsdfValue == 0) {
+                    //     // Skip invalid TSDF values
+                    //     continue;
+                    // }
+
+                    if (abs(tsdfValue) < truncation_distance && tsdfValue != 0){
+                        // Normalize the TSDF value to a 0-1 range
+                        float normalized_tsdf = (tsdfValue - (-truncation_distance)) / (truncation_distance - (-truncation_distance));
+
+                        Point point;
+                        point.x = i * voxel_scale;
+                        point.y = j * voxel_scale;
+                        point.z = k * voxel_scale;
+
+                        // Interpolate between magenta (low TSDF) and green (high TSDF) based on normalized_tsdf
+                        point.r = static_cast<unsigned char>((1.0f - normalized_tsdf) * 255); // Magenta component decreases with TSDF
+                        point.g = static_cast<unsigned char>(normalized_tsdf * 255); // Green component increases with TSDF
+                        point.b = static_cast<unsigned char>((1.0f - normalized_tsdf) * 255); // Magenta component decreases with TSDF
+    
+                        // Write the point
+                        tempFile << point.x << " " << point.y << " " << point.z << " "
+                                << static_cast<int>(point.r) << " "
+                                << static_cast<int>(point.g) << " "
+                                << static_cast<int>(point.b) << "\n";
+
+                        // Increment the vertex count
+                        ++numVertices;
                     }
-
-                    // Normalize the TSDF value to a 0-1 range
-                    float normalized_tsdf = (tsdfValue - tsdf_min) / (tsdf_max - tsdf_min);
-
-                    Point point;
-                    point.x = i * voxel_scale;
-                    point.y = j * voxel_scale;
-                    point.z = k * voxel_scale;
-
-                    // Interpolate between magenta (low TSDF) and green (high TSDF) based on normalized_tsdf
-                    point.r = static_cast<unsigned char>((1.0f - normalized_tsdf) * 255); // Magenta component decreases with TSDF
-                    point.g = static_cast<unsigned char>(normalized_tsdf * 255); // Green component increases with TSDF
-                    point.b = static_cast<unsigned char>((1.0f - normalized_tsdf) * 255); // Magenta component decreases with TSDF
- 
-                    // Write the point
-                    tempFile << point.x << " " << point.y << " " << point.z << " "
-                            << static_cast<int>(point.r) << " "
-                            << static_cast<int>(point.g) << " "
-                            << static_cast<int>(point.b) << "\n";
-
-                    // Increment the vertex count
-                    ++numVertices;
                 }
             }
         }
