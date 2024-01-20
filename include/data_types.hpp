@@ -15,6 +15,54 @@
 
 using Vector4uc = Eigen::Matrix<unsigned char, 4, 1>;
 
+struct GlobalConfiguration {
+	// The overall size of the volume. Will be allocated on the GPU and is thus limited by the amount of
+	// storage you have available. Dimensions are (x, y, z).
+	// Eigen::Vector3i volume_size { Eigen::Vector3i(512, 512, 512) };
+	Eigen::Vector3i volume_size { Eigen::Vector3i(800, 400, 900) };
+
+	// The amount of mm one single voxel will represent in each dimension. Controls the resolution of the volume.
+	// float voxel_scale { 2.f };
+	float voxel_scale { 4.f }; // mm
+
+	// Parameters for the Bilateral Filter, applied to incoming depth frames.
+	// Directly passed to cv::cuda::bilateralFilter(...); for further information, have a look at the opencv docs.
+	int bfilter_kernel_size { 5 };
+	float bfilter_color_sigma { 1.f };
+	float bfilter_spatial_sigma { 1.f };
+
+	// The initial distance of the camera from the volume center along the z-axis (in mm)
+	float init_depth { 1400.f };
+
+	// Downloads the model frame for each frame (for visualization purposes). If this is set to true, you can
+	// retrieve the frame with Pipeline::get_last_model_frame()
+	bool use_output_frame = { true };
+
+	// The truncation distance for both updating and raycasting the TSDF volume
+	float truncation_distance { 25.f };
+
+	// The distance (in mm) after which to set the depth in incoming depth frames to 0.
+	// Can be used to separate an object you want to scan from the background
+	float depth_cutoff_distance { 3000.f };
+
+	// The number of pyramid levels to generate for each frame, including the original frame level
+	int num_levels { 3 };
+
+	// The maximum buffer size for exporting triangles; adjust if you run out of memory when exporting
+	int triangles_buffer_size { 3 * 2000000 };
+	// The maximum buffer size for exporting pointclouds; adjust if you run out of memory when exporting
+	int pointcloud_buffer_size { 3 * 2000000 };
+
+	// ICP configuration
+	// The distance threshold (as described in the paper) in mm
+	float distance_threshold { 50.f };
+	// The angle threshold (as described in the paper) in degrees
+	float angle_threshold { 20.f };
+	// Number of ICP iterations for each level from original level 0 to highest scaled level (sparse to coarse)
+	std::vector<int> icp_iterations {10, 5, 4};
+	// std::vector<int> icp_iterations {16, 8, 4};
+};
+
 struct CameraParameters {
 	int image_width, image_height;
 	float focal_x, focal_y;
@@ -580,51 +628,3 @@ struct VolumeData {
         color_volume.setTo(0);
     }
 };
-
-struct GlobalConfiguration {
-        // The overall size of the volume. Will be allocated on the GPU and is thus limited by the amount of
-        // storage you have available. Dimensions are (x, y, z).
-	// Eigen::Vector3i volume_size { Eigen::Vector3i(512, 512, 512) };
-	Eigen::Vector3i volume_size { Eigen::Vector3i(800, 400, 900) };
-
-        // The amount of mm one single voxel will represent in each dimension. Controls the resolution of the volume.
-        // float voxel_scale { 2.f };
-        float voxel_scale { 4.f }; // mm
-
-        // Parameters for the Bilateral Filter, applied to incoming depth frames.
-        // Directly passed to cv::cuda::bilateralFilter(...); for further information, have a look at the opencv docs.
-        int bfilter_kernel_size { 5 };
-        float bfilter_color_sigma { 1.f };
-        float bfilter_spatial_sigma { 1.f };
-
-        // The initial distance of the camera from the volume center along the z-axis (in mm)
-        float init_depth { 1400.f };
-
-        // Downloads the model frame for each frame (for visualization purposes). If this is set to true, you can
-        // retrieve the frame with Pipeline::get_last_model_frame()
-        bool use_output_frame = { true };
-
-        // The truncation distance for both updating and raycasting the TSDF volume
-        float truncation_distance { 25.f };
-
-        // The distance (in mm) after which to set the depth in incoming depth frames to 0.
-        // Can be used to separate an object you want to scan from the background
-        float depth_cutoff_distance { 2500.f };
-
-        // The number of pyramid levels to generate for each frame, including the original frame level
-        int num_levels { 3 };
-
-        // The maximum buffer size for exporting triangles; adjust if you run out of memory when exporting
-        int triangles_buffer_size { 3 * 2000000 };
-        // The maximum buffer size for exporting pointclouds; adjust if you run out of memory when exporting
-        int pointcloud_buffer_size { 3 * 2000000 };
-
-        // ICP configuration
-        // The distance threshold (as described in the paper) in mm
-        float distance_threshold { 75.f };
-        // The angle threshold (as described in the paper) in degrees
-        float angle_threshold { 30.f };
-        // Number of ICP iterations for each level from original level 0 to highest scaled level (sparse to coarse)
-        // std::vector<int> icp_iterations {10, 5, 4};
-        std::vector<int> icp_iterations {16, 8, 4};
-    };

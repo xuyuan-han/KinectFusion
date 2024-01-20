@@ -1,6 +1,6 @@
 #include "kinectfusion.hpp"
 
-#define MAXFRAMECNT 10 // Process MAXFRAMECNT frames
+// #define MAXFRAMECNT 80 // Process MAXFRAMECNT frames, comment out this line to process all frames
 
 int main(int argc, char **argv)
 {
@@ -32,7 +32,9 @@ int main(int argc, char **argv)
     cameraparameters.image_width=sensor.getDepthImageWidth();
     cameraparameters.image_height=sensor.getDepthImageHeight();
 
+    #ifdef MAXFRAMECNT
     unsigned int maxFrameCnt = MAXFRAMECNT;
+    #endif
 
     Pipeline pipeline {cameraparameters, configuration};
     while(sensor.processNextFrame()){
@@ -64,7 +66,12 @@ int main(int argc, char **argv)
 
         cv::imshow("SurfacePrediction Output: Normal", pipeline.get_last_model_normal_frame());
         cv::moveWindow("SurfacePrediction Output: Normal", sensor.getColorRGBX().cols, sensor.getColorRGBX().rows + 40);
-        
+
+        cv::imshow("SurfacePrediction Output: Normal (in camera frame)", pipeline.get_last_model_normal_frame_in_camera());
+        cv::moveWindow("SurfacePrediction Output: Normal (in camera frame)", sensor.getColorRGBX().cols, sensor.getColorRGBX().rows + 40);
+
+        // std::cout << "SurfacePrediction Output: Normal in camera frame (480*0.40, 640*0.66): " << pipeline.get_last_model_normal_frame_in_camera().at<cv::Vec3f>(480*0.40, 640*0.66) << std::endl;
+
         cv::imshow("SurfacePrediction Output: Vertex", pipeline.get_last_model_vertex_frame());
         cv::moveWindow("SurfacePrediction Output: Vertex", 2* sensor.getColorRGBX().cols, sensor.getColorRGBX().rows + 40);
 
@@ -77,9 +84,11 @@ int main(int argc, char **argv)
 
         cv::waitKey(100);
 
+        #ifdef MAXFRAMECNT
         if (sensor.getCurrentFrameCnt() == (maxFrameCnt-1)) {
             break;
         }
+        #endif
     }
     std::cout << "Finished - Total frame processed: " << sensor.getCurrentFrameCnt() << std::endl;
     std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;

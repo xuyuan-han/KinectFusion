@@ -45,10 +45,14 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     if (frame_id > 0){
         // cv::imshow("frame_data.depth_pyramid[0]", frame_data.depth_pyramid[0]);
         // cv::imshow("frame_data.color_pyramid[0]", frame_data.color_pyramid[0]);
-        cv::imshow("frame_data.normal_pyramid[0]", frame_data.normal_pyramid[0]);
-        cv::moveWindow("frame_data.normal_pyramid[0]", frame_data.normal_pyramid[0].cols, frame_data.normal_pyramid[0].rows*2+80);
-        cv::imshow("frame_data.vertex_pyramid[0]", frame_data.vertex_pyramid[0]);
-        cv::moveWindow("frame_data.vertex_pyramid[0]", frame_data.vertex_pyramid[0].cols*2, frame_data.vertex_pyramid[0].rows*2+80);
+
+        cv::imshow("SurfaceMeasurement Output: normal_pyramid[0]", frame_data.normal_pyramid[0]);
+        cv::moveWindow("SurfaceMeasurement Output: normal_pyramid[0]", frame_data.normal_pyramid[0].cols, 0);
+
+        // std::cout << "frame_data.normal_pyramid[0] (480*0.40, 640*0.66): " << frame_data.normal_pyramid[0].at<cv::Vec3f>(480*0.40, 640*0.66) << std::endl;
+
+        cv::imshow("SurfaceMeasurement Output: vertex_pyramid[0]", frame_data.vertex_pyramid[0]);
+        cv::moveWindow("SurfaceMeasurement Output: vertex_pyramid[0]", frame_data.vertex_pyramid[0].cols*2, 0);
         cv::waitKey(1);
     }
     
@@ -164,6 +168,11 @@ cv::Mat Pipeline::get_last_model_vertex_frame() const
 cv::Mat Pipeline::get_last_model_normal_frame() const
 {
     return last_model_normal_frame;
+}
+
+cv::Mat Pipeline::get_last_model_normal_frame_in_camera() const
+{
+    return rotate_map_multi_threads(last_model_normal_frame, current_pose.block(0, 0, 3, 3).inverse());
 }
 
 void Pipeline::save_tsdf_color_volume_point_cloud() const
@@ -525,6 +534,45 @@ int save_camera_pose_point_cloud(Eigen::Matrix4f current_pose, int numVertices, 
     return numVertices;
 }
 
+// can be used to rotate the model normal map to the camera coordinate system
+cv::Mat rotate_map_multi_threads(const cv::Mat& mat, const Eigen::Matrix3f& rotation) {
+    cv::Mat matCopy = mat.clone();
+    int numThreads = std::thread::hardware_concurrency();
+    std::vector<std::thread> threads(numThreads);
+    int numRowsPerThread = mat.rows / numThreads;
+
+    for (int i = 0; i < numThreads; ++i) {
+        int startRow = i * numRowsPerThread;
+        int endRow = (i + 1) * numRowsPerThread;
+
+        if (i == numThreads - 1) {
+            endRow = mat.rows;
+        }
+
+        threads[i] = std::thread(rotate_map_MatSlice, std::ref(matCopy), std::ref(rotation), startRow, endRow);
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    return matCopy;
+}
+
+void rotate_map_MatSlice(cv::Mat& mat, const Eigen::Matrix3f& rotation, int startRow, int endRow) {
+    for (int i = startRow; i < endRow; ++i) {
+        for (int j = 0; j < mat.cols; ++j) {
+            cv::Vec3f& pixel = mat.at<cv::Vec3f>(i, j);
+            Eigen::Vector3f vec(pixel[0], pixel[1], pixel[2]);
+            Eigen::Vector3f rotatedVec = rotation * vec;
+            pixel = cv::Vec3f(rotatedVec[0], rotatedVec[1], rotatedVec[2]);
+
+            // std::cout << "vec: \n" << vec << std::endl;
+            // std::cout << "rotatedVec: \n" << rotatedVec << std::endl;
+            // std::cout << "rotation: \n" << rotation << std::endl;
+        }
+    }
+}
 
 // void createAndSavePointCloud(const cv::Mat& tsdfMatrix, const std::string& outputFilename, Eigen::Vector3i volume_size) {
 //     std::ofstream plyFile(outputFilename);

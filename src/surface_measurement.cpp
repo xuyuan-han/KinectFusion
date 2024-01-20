@@ -93,15 +93,20 @@ void compute_map(const cv::Mat_<float>& depthmap, const CameraParameters& camera
             }
             else
             {
-                cv::Vec3f p0 = vertexMap.at<cv::Vec3f>(i-1, t);
-                cv::Vec3f p1 = vertexMap.at<cv::Vec3f>(i+1, t);
-                cv::Vec3f p2 = vertexMap.at<cv::Vec3f>(i , t-1);
-                cv::Vec3f p3 = vertexMap.at<cv::Vec3f>(i , t + 1);
-                cv::Vec3f dp_dx = (p1 - p0) ;
-                cv::Vec3f dp_dy = (p2 - p3 );
+                cv::Vec3f p0 = vertexMap.at<cv::Vec3f>(i-1, t); // upper
+                cv::Vec3f p1 = vertexMap.at<cv::Vec3f>(i+1, t); // lower
+                cv::Vec3f p2 = vertexMap.at<cv::Vec3f>(i , t-1); // left
+                cv::Vec3f p3 = vertexMap.at<cv::Vec3f>(i , t + 1); // right
+                cv::Vec3f dp_dy = (p0 - p1) ; // lower -> upper
+                cv::Vec3f minus_dp_dx = (p2 - p3 ); // right -> left
 
                 
-                cv::Vec3f normal = dp_dx.cross(dp_dy);
+                cv::Vec3f normal = dp_dy.cross(minus_dp_dx);
+
+                if (normal[2] > 0){
+                        normal *= -1;
+                }
+
                 if (cv::norm(normal) != 0.0)
                 {
                     cv::normalize(normal,normal,1);

@@ -56,19 +56,24 @@ bool pose_estimation(Eigen::Matrix4f& pose,
             // cv::imshow("ICP Model normal", model_data.normal_pyramid[level]);
             // cv::waitKey(0);
 
-            Eigen::JacobiSVD<Eigen::MatrixXd> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
-            const double tol = 1e-10;
-            const auto& singular_values = svd.singularValues();
+            // Eigen::JacobiSVD<Eigen::MatrixXd> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
+            // const double tol = 1e-10;
+            // const auto& singular_values = svd.singularValues();
 
             // std::cout << "min singular_value: " << singular_values(singular_values.size() - 1) << std::endl;
-            if (singular_values(singular_values.size() - 1) < tol) {
-                // std::cout << "ICP: Matrix is singular or near-singular" << std::endl;
-                // return false;
-                break;
-            }
+
+            // if (singular_values(singular_values.size() - 1) < tol) {
+            //     // std::cout << "ICP: Matrix is singular or near-singular" << std::endl;
+            //     return false;
+            //     // break;
+            // }
+
+            double det = A.determinant();
+            if (fabs(det) < 1e-15 || std::isnan(det))
+                return false;
 
             // Directly solve the linear system A * x = b to get alpha, beta and gamma
-            Eigen::Matrix<float, 6, 1> result = svd.solve(b).cast<float>();
+            Eigen::Matrix<float, 6, 1> result = A.fullPivLu().solve(b).cast<float>();
 
             float alpha = result(0);
             float beta = result(1);
@@ -222,7 +227,9 @@ void estimate_step_pixel_slice(int cols, int rows, int rowStart, int rowEnd,
                             normal_previous_global.z() = normal_map_previous.at<cv::Vec3f>(point.y(), point.x())[2];
 
                             float angle = acosf(normal_previous_global.dot(normal_current_global));
-                            
+
+                            // std::cout << "normal_previous_global: \n" << normal_previous_global << std::endl;
+                            // std::cout << "normal_current_global: \n" << normal_current_global << std::endl;                            
                             // std::cout << "angle: " << angle << std::endl;
                             
                             if (angle <= angle_threshold){
@@ -349,6 +356,8 @@ void estimate_step(const Eigen::Matrix3f& rotation_current,
 
                             float angle = acosf(normal_previous_global.dot(normal_current_global));
                             
+                            // std::cout << "normal_previous_global: \n" << normal_previous_global << std::endl;
+                            // std::cout << "normal_current_global: \n" << normal_current_global << std::endl;        
                             // std::cout << "angle: " << angle << std::endl;
                             
                             if (angle <= angle_threshold){
@@ -399,5 +408,5 @@ void estimate_step(const Eigen::Matrix3f& rotation_current,
             }
         }
     }
-    std::cout << "correspondence_count: " << correspondence_count << std::endl;
+    // std::cout << "correspondence_count: " << correspondence_count << std::endl;
 }

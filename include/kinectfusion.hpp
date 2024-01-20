@@ -18,6 +18,7 @@ public:
     cv::Mat get_last_model_color_frame() const;
     cv::Mat get_last_model_vertex_frame() const;
     cv::Mat get_last_model_normal_frame() const;
+    cv::Mat get_last_model_normal_frame_in_camera() const;
     void save_tsdf_color_volume_point_cloud() const;
     
 private:
@@ -52,3 +53,7 @@ void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& tsdfMat
 void saveColorPointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, bool showFaces);
 
 int save_camera_pose_point_cloud(Eigen::Matrix4f current_pose, int numVertices, std::string outputFilename);
+
+cv::Mat rotate_map_multi_threads(const cv::Mat& mat, const Eigen::Matrix3f& rotation);
+
+void rotate_map_MatSlice(cv::Mat& mat, const Eigen::Matrix3f& rotation, int startRow, int endRow);
