@@ -13,8 +13,18 @@ Pipeline::Pipeline(const CameraParameters _camera_parameters,
 {
     current_pose.setIdentity();
     current_pose(0, 3) = _configuration.volume_size[0] / 2 * _configuration.voxel_scale;
-    current_pose(1, 3) = _configuration.volume_size[1] / 2 * _configuration.voxel_scale;
+    // current_pose(1, 3) = _configuration.volume_size[1] / 2 * _configuration.voxel_scale;
+    current_pose(1, 3) = 0;
     current_pose(2, 3) = _configuration.volume_size[2] / 2 * _configuration.voxel_scale - _configuration.init_depth;
+
+    // rotate around x axis by -45 degrees
+    float beta = -40.0f;
+    beta = beta / 180.0f * M_PI;
+    Eigen::Matrix3f rotation_matrix;
+    rotation_matrix << 1, 0, 0,
+                       0, cosf(beta), -sinf(beta),
+                       0, sinf(beta), cosf(beta);
+    current_pose.block(0, 0, 3, 3) = rotation_matrix;
 }
 
 bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map)
@@ -35,10 +45,10 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     if (frame_id > 0){
         // cv::imshow("frame_data.depth_pyramid[0]", frame_data.depth_pyramid[0]);
         // cv::imshow("frame_data.color_pyramid[0]", frame_data.color_pyramid[0]);
-        cv::imshow("frame_data.vertex_pyramid[0]", frame_data.vertex_pyramid[0]);
-        cv::moveWindow("frame_data.vertex_pyramid[0]", frame_data.vertex_pyramid[0].cols, frame_data.vertex_pyramid[0].rows*2+80);
         cv::imshow("frame_data.normal_pyramid[0]", frame_data.normal_pyramid[0]);
-        cv::moveWindow("frame_data.normal_pyramid[0]", frame_data.normal_pyramid[0].cols*2, frame_data.normal_pyramid[0].rows*2+80);
+        cv::moveWindow("frame_data.normal_pyramid[0]", frame_data.normal_pyramid[0].cols, frame_data.normal_pyramid[0].rows*2+80);
+        cv::imshow("frame_data.vertex_pyramid[0]", frame_data.vertex_pyramid[0]);
+        cv::moveWindow("frame_data.vertex_pyramid[0]", frame_data.vertex_pyramid[0].cols*2, frame_data.vertex_pyramid[0].rows*2+80);
         cv::waitKey(1);
     }
     

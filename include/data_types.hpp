@@ -584,8 +584,8 @@ struct VolumeData {
 struct GlobalConfiguration {
         // The overall size of the volume. Will be allocated on the GPU and is thus limited by the amount of
         // storage you have available. Dimensions are (x, y, z).
-	Eigen::Vector3i volume_size { Eigen::Vector3i(512, 512, 512) };
-	// Eigen::Vector3i volume_size { Eigen::Vector3i(1024, 1024, 1024) };
+	// Eigen::Vector3i volume_size { Eigen::Vector3i(512, 512, 512) };
+	Eigen::Vector3i volume_size { Eigen::Vector3i(800, 400, 900) };
 
         // The amount of mm one single voxel will represent in each dimension. Controls the resolution of the volume.
         // float voxel_scale { 2.f };
@@ -598,7 +598,7 @@ struct GlobalConfiguration {
         float bfilter_spatial_sigma { 1.f };
 
         // The initial distance of the camera from the volume center along the z-axis (in mm)
-        float init_depth { 1500.f };
+        float init_depth { 1400.f };
 
         // Downloads the model frame for each frame (for visualization purposes). If this is set to true, you can
         // retrieve the frame with Pipeline::get_last_model_frame()
@@ -621,7 +621,7 @@ struct GlobalConfiguration {
 
         // ICP configuration
         // The distance threshold (as described in the paper) in mm
-        float distance_threshold { 50.f };
+        float distance_threshold { 75.f };
         // The angle threshold (as described in the paper) in degrees
         float angle_threshold { 30.f };
         // Number of ICP iterations for each level from original level 0 to highest scaled level (sparse to coarse)

@@ -62,12 +62,13 @@ void Surface_Reconstruction::reconstructionProcessVolumeSlice(Volume* vol, cv::M
 
 						if (sdf >= -trancutionDistance)
 						{
+							float truncatedSDF = fmin(trancutionDistance, sdf);
 							float weight = 1.0f;
 							float oldSdf = vol->getVoxel(x, y, z).sdf;
 							float oldWeight = vol->getVoxel(x, y, z).weight;
 							uint oldClass = vol->getVoxel(x, y, z).class_id;
 
-							float newSdf = (oldSdf * oldWeight + sdf * weight) / (oldWeight + weight);
+							float newSdf = (oldSdf * oldWeight + truncatedSDF * weight) / (oldWeight + weight);
 							float newWeight = oldWeight + weight;
 
 							uint newClass = class_map[pixel[1] * width + pixel[0]];
@@ -201,12 +202,13 @@ void Surface_Reconstruction::integrate(cv::Mat depth, cv::Mat colorMap, Volume* 
 
 						if (sdf >= -trancutionDistance)
 						{
+							float truncatedSDF = fmin(trancutionDistance, sdf);
 							float weight = 1.0f;
 							float oldSdf = vol->getVoxel(x, y, z).sdf;
 							float oldWeight = vol->getVoxel(x, y, z).weight;
 							uint oldClass = vol->getVoxel(x, y, z).class_id;
 
-							float newSdf = (oldSdf * oldWeight + sdf * weight) / (oldWeight + weight);
+							float newSdf = (oldSdf * oldWeight + truncatedSDF * weight) / (oldWeight + weight);
 							float newWeight = oldWeight + weight;
 
 							uint newClass = class_map[pixel[1] * width + pixel[0]];
