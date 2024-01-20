@@ -68,7 +68,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     // std::cout << ">> 3 Surface reconstruction begin" << std::endl;
 
-#ifdef USE_MULTI_THREADING
+#ifdef USE_CPU_MULTI_THREADING
     Surface_Reconstruction::integrate_multi_threads(
         frame_data.depth_pyramid[0],
         frame_data.color_pyramid[0],
@@ -158,16 +158,10 @@ cv::Mat Pipeline::get_last_model_normal_frame() const
 
 void Pipeline::save_tsdf_color_volume_point_cloud() const
 {
-    auto start = std::chrono::high_resolution_clock::now(); // start time measurement
-
     // createAndSavePointCloud(volumedata.tsdf_volume, "pointcloud.ply", configuration.volume_size);
     // createAndSavePointCloudVolumeData(volumedata.tsdf_volume, current_pose, "VolumeData_PointCloud.ply", configuration.volume_size, true);
     createAndSavePointCloudVolumeData_multi_threads(volumedata.tsdf_volume, poses, "VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
     createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, poses, "VolumeData_ColorPointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
-
-    auto end_save = std::chrono::high_resolution_clock::now(); // end time measurement
-    std::chrono::duration<double, std::milli> elapsed_save = end_save - start; // elapsed time in milliseconds
-    std::cout << "-- Save point cloud time: " << elapsed_save.count() << " ms\n";
 }
 
 // multi threads version

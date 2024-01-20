@@ -19,7 +19,7 @@ void surface_prediction(
     model_normal.setTo(0);
     model_color.setTo(0);
 
-#ifdef USE_MULTI_THREADING
+#ifdef USE_CPU_MULTI_THREADING
     const Eigen::Matrix<float, 3, 3, Eigen::DontAlign> rotation = pose.block(0, 0, 3, 3);
     const Eigen::Matrix<float, 3, 1, Eigen::DontAlign> translation = pose.block(0, 3, 3, 1);
 

@@ -26,7 +26,7 @@ bool pose_estimation(Eigen::Matrix4f& pose,
 
             // std::cout << "ICP before estimate step" << std::endl;
             
-        #ifdef USE_MULTI_THREADING
+        #ifdef USE_CPU_MULTI_THREADING
             estimate_step_multi_threads(current_global_rotation, current_global_translation,
                                 frame_data.vertex_pyramid[level], frame_data.normal_pyramid[level],
                                 previous_global_rotation_inverse, previous_global_translation,
@@ -59,13 +59,12 @@ bool pose_estimation(Eigen::Matrix4f& pose,
             Eigen::JacobiSVD<Eigen::MatrixXd> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
             const double tol = 1e-10;
             const auto& singular_values = svd.singularValues();
-            for (int i = 0; i < singular_values.size(); ++i) {
-                // std::cout << "singular_values(" << i << "): " << singular_values(i) << std::endl;
-                if (singular_values(i) < tol) {
-                    // std::cout << "ICP: Matrix is singular or near-singular" << std::endl;
-                    // return false;
-                    break;
-                }
+
+            // std::cout << "min singular_value: " << singular_values(singular_values.size() - 1) << std::endl;
+            if (singular_values(singular_values.size() - 1) < tol) {
+                // std::cout << "ICP: Matrix is singular or near-singular" << std::endl;
+                // return false;
+                break;
             }
 
             // Directly solve the linear system A * x = b to get alpha, beta and gamma
@@ -296,6 +295,8 @@ void estimate_step(const Eigen::Matrix3f& rotation_current,
     A = Eigen::Matrix<double, 6, 6, Eigen::RowMajor>::Zero();
     b = Eigen::Matrix<double, 6, 1>::Zero();
 
+    int correspondence_count = 0;
+
     for (int x = 0; x < cols; ++x) {
         for (int y = 0; y < rows; ++y) {
     // for (int x = 0; x < 50; ++x) {
@@ -356,7 +357,7 @@ void estimate_step(const Eigen::Matrix3f& rotation_current,
                                 s = vertex_current_global;
 
                                 correspondence_found = true;
-                                
+                                correspondence_count++;
                                 // std::cout << "ICP estimate_step correspondence found" << std::endl;
                             }
                         }
@@ -398,4 +399,5 @@ void estimate_step(const Eigen::Matrix3f& rotation_current,
             }
         }
     }
+    std::cout << "correspondence_count: " << correspondence_count << std::endl;
 }

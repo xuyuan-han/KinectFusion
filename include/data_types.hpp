@@ -11,7 +11,7 @@
 #include <thread>
 #include <functional>
 
-#define USE_MULTI_THREADING
+#define USE_CPU_MULTI_THREADING
 
 using Vector4uc = Eigen::Matrix<unsigned char, 4, 1>;
 
@@ -581,7 +581,7 @@ struct VolumeData {
     }
 };
 
-    struct GlobalConfiguration {
+struct GlobalConfiguration {
         // The overall size of the volume. Will be allocated on the GPU and is thus limited by the amount of
         // storage you have available. Dimensions are (x, y, z).
 	Eigen::Vector3i volume_size { Eigen::Vector3i(512, 512, 512) };
@@ -621,10 +621,10 @@ struct VolumeData {
 
         // ICP configuration
         // The distance threshold (as described in the paper) in mm
-        float distance_threshold { 40.f };
+        float distance_threshold { 50.f };
         // The angle threshold (as described in the paper) in degrees
-        float angle_threshold { 20.f };
+        float angle_threshold { 30.f };
         // Number of ICP iterations for each level from original level 0 to highest scaled level (sparse to coarse)
         // std::vector<int> icp_iterations {10, 5, 4};
-        std::vector<int> icp_iterations {16, 8, 8};
+        std::vector<int> icp_iterations {16, 8, 4};
     };
