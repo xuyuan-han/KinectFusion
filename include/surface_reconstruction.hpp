@@ -13,7 +13,7 @@ namespace Surface_Reconstruction {
 
 	double getLambda(Eigen::Vector2i pixel, Eigen::Matrix3f intrinsics);
 	
-	// void integrate(cv::Mat depth, cv::Mat colorMap, Volume* vol, CameraParameters camera_parameters, float trancutionDistance, Eigen::Matrix4f pos);
+	void integrate(cv::Mat depth, cv::Mat colorMap, Volume* vol, CameraParameters camera_parameters, float trancutionDistance, Eigen::Matrix4f pos);
 }
 
 #endif // !SURFACE_RECON_HPP

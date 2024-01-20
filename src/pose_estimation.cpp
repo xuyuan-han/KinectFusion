@@ -25,16 +25,8 @@ bool pose_estimation(Eigen::Matrix4f& pose,
             Eigen::Matrix<double, 6, 1> b {};
 
             // std::cout << "ICP before estimate step" << std::endl;
-
-            // Estimate one step on the CPU
-            // estimate_step(current_global_rotation, current_global_translation,
-            //                     frame_data.vertex_pyramid[level], frame_data.normal_pyramid[level],
-            //                     previous_global_rotation_inverse, previous_global_translation,
-            //                     cam_params.level(level),
-            //                     model_data.vertex_pyramid[level], model_data.normal_pyramid[level],
-            //                     distance_threshold, sinf(angle_threshold * 3.14159254f / 180.f),
-            //                     A, b);
-
+            
+        #ifdef USE_MULTI_THREADING
             estimate_step_multi_threads(current_global_rotation, current_global_translation,
                                 frame_data.vertex_pyramid[level], frame_data.normal_pyramid[level],
                                 previous_global_rotation_inverse, previous_global_translation,
@@ -42,6 +34,15 @@ bool pose_estimation(Eigen::Matrix4f& pose,
                                 model_data.vertex_pyramid[level], model_data.normal_pyramid[level],
                                 distance_threshold, sinf(angle_threshold * 3.14159254f / 180.f),
                                 A, b);
+        #else
+            estimate_step(current_global_rotation, current_global_translation,
+                                frame_data.vertex_pyramid[level], frame_data.normal_pyramid[level],
+                                previous_global_rotation_inverse, previous_global_translation,
+                                cam_params.level(level),
+                                model_data.vertex_pyramid[level], model_data.normal_pyramid[level],
+                                distance_threshold, sinf(angle_threshold * 3.14159254f / 180.f),
+                                A, b);
+        #endif
 
             // std::cout << "ICP after estimate step" << std::endl;
 
@@ -113,6 +114,7 @@ bool pose_estimation(Eigen::Matrix4f& pose,
     return true;
 }
 
+// multi threads version
 void estimate_step_multi_threads(const Eigen::Matrix3f& rotation_current, 
                 const Eigen::Matrix<float, 3, 1, Eigen::DontAlign>& translation_current,
                 const cv::Mat& vertex_map_current, 
@@ -274,6 +276,7 @@ void estimate_step_pixel_slice(int cols, int rows, int rowStart, int rowEnd,
     }
 }
 
+// single thread version
 void estimate_step(const Eigen::Matrix3f& rotation_current, 
                 const Eigen::Matrix<float, 3, 1, Eigen::DontAlign>& translation_current,
                 const cv::Mat& vertex_map_current, 
@@ -345,7 +348,7 @@ void estimate_step(const Eigen::Matrix3f& rotation_current,
 
                             float angle = acosf(normal_previous_global.dot(normal_current_global));
                             
-                            std::cout << "angle: " << angle << std::endl;
+                            // std::cout << "angle: " << angle << std::endl;
                             
                             if (angle <= angle_threshold){
                                 n = normal_previous_global;
@@ -354,7 +357,7 @@ void estimate_step(const Eigen::Matrix3f& rotation_current,
 
                                 correspondence_found = true;
                                 
-                                std::cout << "ICP estimate_step correspondence found" << std::endl;
+                                // std::cout << "ICP estimate_step correspondence found" << std::endl;
                             }
                         }
                     }

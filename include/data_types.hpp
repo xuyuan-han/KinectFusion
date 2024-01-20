@@ -11,6 +11,8 @@
 #include <thread>
 #include <functional>
 
+#define USE_MULTI_THREADING
+
 using Vector4uc = Eigen::Matrix<unsigned char, 4, 1>;
 
 struct CameraParameters {

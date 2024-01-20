@@ -1,7 +1,16 @@
 #include "kinectfusion.hpp"
 
+#define MAXFRAMECNT 10 // Process MAXFRAMECNT frames
+
 int main(int argc, char **argv)
 {
+
+#ifdef USE_MULTI_THREADING
+    std::cout << "Using multi-threading" << std::endl;
+#else
+    std::cout << "Not using multi-threading" << std::endl;
+#endif
+
     CameraParameters cameraparameters;
     GlobalConfiguration configuration;
 
@@ -23,7 +32,7 @@ int main(int argc, char **argv)
     cameraparameters.image_width=sensor.getDepthImageWidth();
     cameraparameters.image_height=sensor.getDepthImageHeight();
 
-    unsigned int maxFrameCnt = 10; // Process maxFrameCnt frames
+    unsigned int maxFrameCnt = MAXFRAMECNT;
 
     Pipeline pipeline {cameraparameters, configuration};
     while(sensor.processNextFrame()){

@@ -40,32 +40,6 @@ void Surface_Reconstruction::reconstructionProcessVolumeSlice(Volume* vol, cv::M
 				// Indices to world coordinates
 				Eigen::Vector3d worldPoint = vol->pos(x, y, z);
 
-				// print the world point coordinates of voxel at vertex of the volume
-				// if (x == 0 && y == 0 && z == 0) {
-				// 	std::cout << "worldPoint (0,0,0): " << worldPoint << std::endl; 
-				// }
-				// else if (x == 0 && y == 0 && z == vol->getDimZ() - 1) {
-				// 	std::cout << "worldPoint (0,0,max): " << worldPoint << std::endl;
-				// }
-				// else if (x == 0 && y == vol->getDimY() - 1 && z == 0) {
-				// 	std::cout << "worldPoint (0,max,0): " << worldPoint << std::endl;
-				// }
-				// else if (x == 0 && y == vol->getDimY() - 1 && z == vol->getDimZ() - 1) {
-				// 	std::cout << "worldPoint (0,max,max): " << worldPoint << std::endl;
-				// }
-				// else if (x == vol->getDimX() - 1 && y == 0 && z == 0) {
-				// 	std::cout << "worldPoint (max,0,0): " << worldPoint << std::endl;
-				// }
-				// else if (x == vol->getDimX() - 1 && y == 0 && z == vol->getDimZ() - 1) {
-				// 	std::cout << "worldPoint (max,0,max): " << worldPoint << std::endl;
-				// }
-				// else if (x == vol->getDimX() - 1 && y == vol->getDimY() - 1 && z == 0) {
-				// 	std::cout << "worldPoint (max,max,0): " << worldPoint << std::endl;
-				// }
-				// else if (x == vol->getDimX() - 1 && y == vol->getDimY() - 1 && z == vol->getDimZ() - 1) {
-				// 	std::cout << "worldPoint (max,max,max): " << worldPoint << std::endl;
-				// }
-		
 				// To Homogeneous coordinates
 				Eigen::Vector4f worldPointH = Eigen::Vector4f(worldPoint[0], worldPoint[1], worldPoint[2], 1);
 				// To camera frame coordinates
@@ -107,9 +81,7 @@ void Surface_Reconstruction::reconstructionProcessVolumeSlice(Volume* vol, cv::M
 							}
 							Vector4uc oldColor = vol->getVoxel(x, y, z).color;
 							Vector4uc color = Vector4uc();
-							// color[0] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[0];
-							// color[1] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[1];
-							// color[2] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[2];
+
 							color[0] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[0];
 							color[1] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[1];
 							color[2] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[2];
@@ -176,104 +148,106 @@ double Surface_Reconstruction::getLambda(Eigen::Vector2i pixel, Eigen::Matrix3f 
 	return lambda.norm();
 };
 
-// void Surface_Reconstruction::integrate(cv::Mat depth, cv::Mat colorMap, Volume* vol,CameraParameters camera_parameters , float trancutionDistance, Eigen::Matrix4f pos)
-// {
+// single thread version
+void Surface_Reconstruction::integrate(cv::Mat depth, cv::Mat colorMap, Volume* vol,CameraParameters camera_parameters , float trancutionDistance, Eigen::Matrix4f pos)
+{
 
 
-// 	Eigen::Matrix4f worldToCamera= pos;
-// 	Eigen::Matrix4f cameraToWorld= worldToCamera.inverse();
-// 	Eigen::Matrix3f intrinsics= camera_parameters.getIntrinsicMatrix();
-// 	Eigen::Matrix3f intrinsicsInv= intrinsics.inverse();
-// 	int width= camera_parameters.image_width;
-// 	int height= camera_parameters.image_height;
+	Eigen::Matrix4f worldToCamera= pos;
+	Eigen::Matrix4f cameraToWorld= worldToCamera.inverse();
+	Eigen::Matrix3f intrinsics= camera_parameters.getIntrinsicMatrix();
+	Eigen::Matrix3f intrinsicsInv= intrinsics.inverse();
+	int width= camera_parameters.image_width;
+	int height= camera_parameters.image_height;
 	
-// 	Eigen:: Matrix3d R= cameraToWorld.block<3,3>(0,0).cast<double>();
-// 	Eigen::Vector3d t= cameraToWorld.block<3,1>(0,3).cast<double>();
+	Eigen:: Matrix3d R= cameraToWorld.block<3,3>(0,0).cast<double>();
+	Eigen::Vector3d t= cameraToWorld.block<3,1>(0,3).cast<double>();
 
 
-// 	// Convert depth map to float *
-// 	float* depth_map = depth.ptr<float>();
+	// Convert depth map to float *
+	float* depth_map = depth.ptr<float>();
 
 
-// 	// Dummy class map for now
-// 	uint * class_map = new uint[width * height];
-
-
-
-// 	for (int z = 0; z < vol->getDimZ(); z++)
-// 		for (int y = 0; y < vol->getDimY(); y++)
-// 			for (int x = 0; x < vol->getDimX(); x++)
-// 			{
-// 				// Indices to world coordinates
-// 				Eigen::Vector3d worldPoint = vol->pos(x, y, z);
-// 				// To Homogeneous coordinates
-// 				Eigen::Vector4f worldPointH = Eigen::Vector4f(worldPoint[0], worldPoint[1], worldPoint[2], 1);
-// 				// To camera frame coordinates
-// 				Eigen::Vector4f cameraPointH = cameraToWorld * worldPointH;
-// 				// Non Homogeneous coordinates
-// 				Eigen::Vector3f cameraPointNonHomogenous = Eigen::Vector3f(cameraPointH[0] / cameraPointH[3], cameraPointH[1] / cameraPointH[3], cameraPointH[2] / cameraPointH[3]);
-// 				// To Sensor coordinates by projection
-// 				Eigen::Vector3f cameraPoint = intrinsics * Eigen::Vector3f(cameraPointH[0] / cameraPointH[3], cameraPointH[1] / cameraPointH[3], cameraPointH[2] / cameraPointH[3]);
-// 				// To pixel coordinates
-// 				Eigen::Vector2i pixel = Eigen::Vector2i((int)round(cameraPoint[0] / cameraPoint[2]), (int)round(cameraPoint[1] / cameraPoint[2]));
-
-// 				if (pixel[0] >= 0 && pixel[0] < width && pixel[1] >= 0 && pixel[1] < height)
-// 				{
-// 					float depth = depth_map[pixel[1] * width + pixel[0]];
-// 					if (depth > 0)
-// 					{
-// 						//Calculate Lambda
-// 						double lambda = getLambda(pixel, intrinsics);
-// 						double sdf = (-1.f) * ((1.0f / lambda) * cameraPointNonHomogenous.norm() - depth);
-
-// 						if (sdf >= -trancutionDistance)
-// 						{
-// 							float weight = 1.0f;
-// 							float oldSdf = vol->getVoxel(x, y, z).sdf;
-// 							float oldWeight = vol->getVoxel(x, y, z).weight;
-// 							uint oldClass = vol->getVoxel(x, y, z).class_id;
-
-// 							float newSdf = (oldSdf * oldWeight + sdf * weight) / (oldWeight + weight);
-// 							float newWeight = oldWeight + weight;
-
-// 							uint newClass = class_map[pixel[1] * width + pixel[0]];
-
-// 							if (newClass != oldClass)
-// 							{
-// 								// Randomly choose one of the classes with probability proportional to the weight
-// 								double r = ((double)rand() / (RAND_MAX)); // Random number between 0 and 1
-// 								if (r < (double)oldWeight / (oldWeight + weight))
-// 									newClass = oldClass;
-// 							}
-// 							Vector4uc oldColor = vol->getVoxel(x, y, z).color;
-// 							Vector4uc color = Vector4uc();
-// 							//color[0] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[0];
-// 							//color[1] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[1];
-// 							//color[2] = colorMap.at<cv::Vec3b>(pixel[0], pixel[1])[2];
-// 							// for now just use the color of the voxel
-// 							color[0] = 255;
-// 							color[1] = 255;
-// 							color[2] = 255;
-
-
-// 							color[3] = 255;
-// 							Voxel newVoxel = Voxel();
-// 							newVoxel.sdf = newSdf;
-// 							newVoxel.weight = newWeight;
-// 							newVoxel.class_id = newClass;
-// 							newVoxel.color = color;
-
-
-// 							vol->setVoxel(x, y, z, newVoxel);
-
-// 						}
-
-
-// 					}
-// 				}
-// 			};
+	// Dummy class map for now
+	uint * class_map = new uint[width * height];
 
 
 
+	for (int z = 0; z < vol->getDimZ(); z++)
+		for (int y = 0; y < vol->getDimY(); y++)
+			for (int x = 0; x < vol->getDimX(); x++)
+			{
+				// Indices to world coordinates
+				Eigen::Vector3d worldPoint = vol->pos(x, y, z);
+				// To Homogeneous coordinates
+				Eigen::Vector4f worldPointH = Eigen::Vector4f(worldPoint[0], worldPoint[1], worldPoint[2], 1);
+				// To camera frame coordinates
+				Eigen::Vector4f cameraPointH = cameraToWorld * worldPointH;
+				// Non Homogeneous coordinates
+				Eigen::Vector3f cameraPointNonHomogenous = Eigen::Vector3f(cameraPointH[0] / cameraPointH[3], cameraPointH[1] / cameraPointH[3], cameraPointH[2] / cameraPointH[3]);
+				// To Sensor coordinates by projection
+				Eigen::Vector3f cameraPoint = intrinsics * Eigen::Vector3f(cameraPointH[0] / cameraPointH[3], cameraPointH[1] / cameraPointH[3], cameraPointH[2] / cameraPointH[3]);
+				// To pixel coordinates
+				Eigen::Vector2i pixel = Eigen::Vector2i((int)round(cameraPoint[0] / cameraPoint[2]), (int)round(cameraPoint[1] / cameraPoint[2]));
 
-// }
+				if (pixel[0] >= 0 && pixel[0] < width && pixel[1] >= 0 && pixel[1] < height)
+				{
+					float depth = depth_map[pixel[1] * width + pixel[0]];
+					if (depth > 0)
+					{
+						//Calculate Lambda
+						double lambda = getLambda(pixel, intrinsics);
+						double sdf = (-1.f) * ((1.0f / lambda) * cameraPointNonHomogenous.norm() - depth);
+
+						if (sdf >= -trancutionDistance)
+						{
+							float weight = 1.0f;
+							float oldSdf = vol->getVoxel(x, y, z).sdf;
+							float oldWeight = vol->getVoxel(x, y, z).weight;
+							uint oldClass = vol->getVoxel(x, y, z).class_id;
+
+							float newSdf = (oldSdf * oldWeight + sdf * weight) / (oldWeight + weight);
+							float newWeight = oldWeight + weight;
+
+							uint newClass = class_map[pixel[1] * width + pixel[0]];
+
+							if (newClass != oldClass)
+							{
+								// Randomly choose one of the classes with probability proportional to the weight
+								double r = ((double)rand() / (RAND_MAX)); // Random number between 0 and 1
+								if (r < (double)oldWeight / (oldWeight + weight))
+									newClass = oldClass;
+							}
+							Vector4uc oldColor = vol->getVoxel(x, y, z).color;
+							Vector4uc color = Vector4uc();
+							color[0] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[0];
+							color[1] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[1];
+							color[2] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[2];
+
+							// for now just use the color of the voxel
+							// color[0] = 255;
+							// color[1] = 255;
+							// color[2] = 255;
+
+
+							color[3] = 255;
+							Voxel newVoxel = Voxel();
+							newVoxel.sdf = newSdf;
+							newVoxel.weight = newWeight;
+							newVoxel.class_id = newClass;
+							newVoxel.color = color;
+
+
+							vol->setVoxel(x, y, z, newVoxel);
+
+						}
+
+
+					}
+				}
+			};
+
+
+
+
+}

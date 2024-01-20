@@ -15,9 +15,6 @@ Pipeline::Pipeline(const CameraParameters _camera_parameters,
     current_pose(0, 3) = _configuration.volume_size[0] / 2 * _configuration.voxel_scale;
     current_pose(1, 3) = _configuration.volume_size[1] / 2 * _configuration.voxel_scale;
     current_pose(2, 3) = _configuration.volume_size[2] / 2 * _configuration.voxel_scale - _configuration.init_depth;
-    // current_pose(0, 3) = 0;
-    // current_pose(1, 3) = 0;
-    // current_pose(2, 3) = 0-_configuration.init_depth;
 }
 
 bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map)
@@ -71,13 +68,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     // std::cout << ">> 3 Surface reconstruction begin" << std::endl;
 
-    // Surface_Reconstruction::integrate(
-    //     frame_data.depth_pyramid[0],
-    //     frame_data.color_pyramid[0],
-    //     &volume,
-    //     camera_parameters,
-    //     configuration.truncation_distance,
-    //     current_pose);
+#ifdef USE_MULTI_THREADING
     Surface_Reconstruction::integrate_multi_threads(
         frame_data.depth_pyramid[0],
         frame_data.color_pyramid[0],
@@ -85,6 +76,15 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         camera_parameters,
         configuration.truncation_distance,
         current_pose);
+#else
+    Surface_Reconstruction::integrate(
+        frame_data.depth_pyramid[0],
+        frame_data.color_pyramid[0],
+        &volume,
+        camera_parameters,
+        configuration.truncation_distance,
+        current_pose);
+#endif
 
     // std::cout << ">>> 3 Surface reconstruction done" << std::endl;
 
@@ -170,6 +170,7 @@ void Pipeline::save_tsdf_color_volume_point_cloud() const
     std::cout << "-- Save point cloud time: " << elapsed_save.count() << " ms\n";
 }
 
+// multi threads version
 void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
     // Keep track of the number of vertices
     int numVertices = 0;
@@ -318,6 +319,7 @@ void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::stri
     tempFile.close();
 }
 
+// multi threads version
 void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
     // Keep track of the number of vertices
     int numVertices = 0;
@@ -519,6 +521,7 @@ int save_camera_pose_point_cloud(Eigen::Matrix4f current_pose, int numVertices, 
     tempFilePyramid.close();
     return numVertices;
 }
+
 
 // void createAndSavePointCloud(const cv::Mat& tsdfMatrix, const std::string& outputFilename, Eigen::Vector3i volume_size) {
 //     std::ofstream plyFile(outputFilename);
