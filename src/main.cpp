@@ -1,6 +1,6 @@
 #include "kinectfusion.hpp"
 
-#define MAXFRAMECNT 240 // Process MAXFRAMECNT frames
+#define MAXFRAMECNT 10 // Process MAXFRAMECNT frames
 
 int main(int argc, char **argv)
 {
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
             break;
         }
     }
-    std::cout << "Total frame processed: " << sensor.getCurrentFrameCnt() << std::endl;
+    std::cout << "Finished - Total frame processed: " << sensor.getCurrentFrameCnt() << std::endl;
     std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
     std::cout << ">> Point cloud generation begin" << std::endl;
     auto start = std::chrono::high_resolution_clock::now(); // start time measurement

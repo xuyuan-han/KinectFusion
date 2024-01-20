@@ -80,20 +80,26 @@ void Surface_Reconstruction::reconstructionProcessVolumeSlice(Volume* vol, cv::M
 								if (r < (double)oldWeight / (oldWeight + weight))
 									newClass = oldClass;
 							}
+
 							Vector4uc oldColor = vol->getVoxel(x, y, z).color;
-							Vector4uc color = Vector4uc();
+							Vector4uc color = oldColor;
 
-							color[0] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[0];
-							color[1] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[1];
-							color[2] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[2];
+							if (sdf <= trancutionDistance / 2 && sdf >= -trancutionDistance / 2) {
+								color[0] = (color[0] * oldWeight + colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[0] * weight) / (oldWeight + weight);
+								color[1] = (color[1] * oldWeight + colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[1] * weight) / (oldWeight + weight);
+								color[2] = (color[2] * oldWeight + colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[2] * weight) / (oldWeight + weight);
 
-							// for now just use the color of the voxel
-							// color[0] = 255;
-							// color[1] = 255;
-							// color[2] = 255;
+								// color[0] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[0];
+								// color[1] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[1];
+								// color[2] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[2];
 
+								// for now just use the color of the voxel
+								// color[0] = 255;
+								// color[1] = 255;
+								// color[2] = 255;
+								color[3] = 255;
+							}
 
-							color[3] = 255;
 							Voxel newVoxel = Voxel();
 							newVoxel.sdf = newSdf;
 							newVoxel.weight = newWeight;
@@ -222,17 +228,23 @@ void Surface_Reconstruction::integrate(cv::Mat depth, cv::Mat colorMap, Volume* 
 							}
 							Vector4uc oldColor = vol->getVoxel(x, y, z).color;
 							Vector4uc color = Vector4uc();
-							color[0] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[0];
-							color[1] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[1];
-							color[2] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[2];
 
-							// for now just use the color of the voxel
-							// color[0] = 255;
-							// color[1] = 255;
-							// color[2] = 255;
+							if (sdf <= trancutionDistance / 2 && sdf >= -trancutionDistance / 2) {
+								color[0] = (color[0] * oldWeight + colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[0] * weight) / (oldWeight + weight);
+								color[1] = (color[1] * oldWeight + colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[1] * weight) / (oldWeight + weight);
+								color[2] = (color[2] * oldWeight + colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[2] * weight) / (oldWeight + weight);
 
+								// color[0] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[0];
+								// color[1] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[1];
+								// color[2] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[2];
 
-							color[3] = 255;
+								// for now just use the color of the voxel
+								// color[0] = 255;
+								// color[1] = 255;
+								// color[2] = 255;
+								color[3] = 255;
+							}
+
 							Voxel newVoxel = Voxel();
 							newVoxel.sdf = newSdf;
 							newVoxel.weight = newWeight;
