@@ -14,7 +14,7 @@ int main(int argc, char **argv)
     CameraParameters cameraparameters;
     GlobalConfiguration configuration;
 
-    std::string filenameIn = std::string("../Data/rgbd_dataset_freiburg1_xyz/");
+    std::string filenameIn = std::string("../../Data/rgbd_dataset_freiburg1_xyz/");
 
     VirtualSensor sensor;
     // Load video
@@ -47,10 +47,10 @@ int main(int argc, char **argv)
         std::chrono::duration<double, std::milli> elapsed = end - start; // elapsed time in milliseconds
 
         if (!success){
-            std::cout << "--> Frame " << sensor.getCurrentFrameCnt() << " could not be processed" << std::endl;
+            std::cout << "\n>>> Frame " << sensor.getCurrentFrameCnt() << " could not be processed" << std::endl;
             // break;
         }else{
-            std::cout << "--> Frame " << sensor.getCurrentFrameCnt() << " processed: " << elapsed.count() << " ms" << std::endl;
+            std::cout << "\n>>> Frame " << sensor.getCurrentFrameCnt() << " processed: " << elapsed.count() << " ms" << std::endl;
         }
         
         std::cout << "-----------------------------------" << std::endl;

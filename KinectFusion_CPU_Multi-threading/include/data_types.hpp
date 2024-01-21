@@ -33,7 +33,7 @@ struct GlobalConfiguration {
 	float bfilter_spatial_sigma { 1.f };
 
 	// The initial distance of the camera from the volume center along the z-axis (in mm)
-	float init_depth { 1400.f };
+	float init_depth { 1600.f };
 
 	// Downloads the model frame for each frame (for visualization purposes). If this is set to true, you can
 	// retrieve the frame with Pipeline::get_last_model_frame()

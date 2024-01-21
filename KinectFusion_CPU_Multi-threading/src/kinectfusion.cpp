@@ -31,6 +31,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 {
     // std::cout << ">> 1 Surface measurement begin" << std::endl;
 
+    auto start = std::chrono::high_resolution_clock::now();
     FrameData frame_data = surface_measurement(
         depth_map,
         camera_parameters,
@@ -40,6 +41,10 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         configuration.bfilter_color_sigma,
         configuration.bfilter_spatial_sigma);
     frame_data.color_pyramid[0] = color_map;
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end - start;
+    std::cout << "-- Surface measurement:\t" << elapsed.count() << " ms" << std::endl;
+
     // std::cout << frame_data.depth_pyramid[0] << std::endl;
 
     if (frame_id > 0){
@@ -61,6 +66,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     // std::cout << ">> 2 Pose estimation begin" << std::endl;
 
+    start = std::chrono::high_resolution_clock::now();
     bool icp_success { true };
     if (frame_id > 0) { // Do not perform ICP for the very first frame
         icp_success = pose_estimation(
@@ -73,6 +79,10 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
             configuration.angle_threshold,
             configuration.icp_iterations);
     }
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    std::cout << "-- Pose estimation:\t" << elapsed.count() << " ms" << std::endl;
+
     if (!icp_success)
         return false;
     poses.push_back(current_pose);
@@ -82,6 +92,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     // std::cout << ">> 3 Surface reconstruction begin" << std::endl;
 
+    start = std::chrono::high_resolution_clock::now();
 #ifdef USE_CPU_MULTI_THREADING
     Surface_Reconstruction::integrate_multi_threads(
         frame_data.depth_pyramid[0],
@@ -99,6 +110,9 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         configuration.truncation_distance,
         current_pose);
 #endif
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    std::cout << "-- Surface reconstruct: " << elapsed.count() << " ms" << std::endl;
 
     // std::cout << ">>> 3 Surface reconstruction done" << std::endl;
 
@@ -107,7 +121,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     // volumedata.tsdf_volume = volume.getVolume();
     // volumedata.color_volume = volume.getColorVolume();
 
-    auto start = std::chrono::high_resolution_clock::now(); // start time measurement
+    start = std::chrono::high_resolution_clock::now(); // start time measurement
 
     // volumedata.tsdf_volume = volume.getVolumeData();
     // volumedata.color_volume = volume.getColorVolumeData();
@@ -118,7 +132,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     auto end_transfer = std::chrono::high_resolution_clock::now(); // end time measurement
     std::chrono::duration<double, std::milli> elapsed_transfer = end_transfer - start; // elapsed time in milliseconds
-    std::cout << "-- Volumedata transfer: " << elapsed_transfer.count() << " ms\n";
+    std::cout << "-- Volumedata transfer:\t" << elapsed_transfer.count() << " ms\n";
 
     // save_tsdf_color_volume_point_cloud();
 
@@ -126,6 +140,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     // std::cout << ">> 4 Surface prediction begin" << std::endl;
 
+    start = std::chrono::high_resolution_clock::now();
     for (int level = 0; level < configuration.num_levels; ++level){
         // std::cout << ">> 4 (level)" << level << " Surface prediction begin" << std::endl;
         surface_prediction(
@@ -138,6 +153,9 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
             current_pose);
         // std::cout << ">> 4 (level)" << level << " Surface prediction done" << std::endl;
     }
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
+    std::cout << "-- Surface prediction:\t" << elapsed.count() << " ms" << std::endl;
 
     // std::cout << ">>> 4 Surface prediction done" << std::endl;
 
