@@ -1,7 +1,7 @@
-#include <iostream>
+#include "kinectfusion.hpp"
 
 int main(int argc, char **argv)
 {
-    std::cout << "Hello, world!" << std::endl;
+    test_cuda();
     return 0;
 }
