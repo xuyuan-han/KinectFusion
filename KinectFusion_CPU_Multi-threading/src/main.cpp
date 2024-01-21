@@ -100,5 +100,5 @@ int main(int argc, char **argv)
     std::cout << "-- Save point cloud time: " << elapsed_save.count() << " ms\n";
     std::cout << ">>> Point cloud generation done" << std::endl;
 
-    cv::waitKey(0);
+    cv::waitKey(10);
 }
