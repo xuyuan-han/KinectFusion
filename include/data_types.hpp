@@ -18,12 +18,13 @@ using Vector4uc = Eigen::Matrix<unsigned char, 4, 1>;
 struct GlobalConfiguration {
 	// The overall size of the volume. Will be allocated on the GPU and is thus limited by the amount of
 	// storage you have available. Dimensions are (x, y, z).
-	// Eigen::Vector3i volume_size { Eigen::Vector3i(512, 512, 512) };
-	Eigen::Vector3i volume_size { Eigen::Vector3i(800, 400, 900) };
+	// Eigen::Vector3i volume_size { Eigen::Vector3i(512, 512, 512) }; voxel_scale = 2 mm
+	// Eigen::Vector3i volume_size { Eigen::Vector3i(800, 400, 900) }; voxel_scale = 4 mm
+	Eigen::Vector3i volume_size { Eigen::Vector3i(700, 400, 800) }; // voxel_scale = 5 mm
 
 	// The amount of mm one single voxel will represent in each dimension. Controls the resolution of the volume.
 	// float voxel_scale { 2.f };
-	float voxel_scale { 4.f }; // mm
+	float voxel_scale { 5.f }; // mm
 
 	// Parameters for the Bilateral Filter, applied to incoming depth frames.
 	// Directly passed to cv::cuda::bilateralFilter(...); for further information, have a look at the opencv docs.
@@ -55,7 +56,7 @@ struct GlobalConfiguration {
 
 	// ICP configuration
 	// The distance threshold (as described in the paper) in mm
-	float distance_threshold { 50.f };
+	float distance_threshold { 20.f };
 	// The angle threshold (as described in the paper) in degrees
 	float angle_threshold { 20.f };
 	// Number of ICP iterations for each level from original level 0 to highest scaled level (sparse to coarse)
