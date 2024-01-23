@@ -284,21 +284,12 @@ void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::stri
                 else
                 {
                     // Retrieve the TSDF value
-                    short tsdfValue = tsdfMatrix.at<cv::Vec<short, 2>>(k * dy + j, i)[0];
+                    float tsdfValue = tsdfMatrix.at<cv::Vec<short, 2>>(k * dy + j, i)[0] * DIVSHORTMAX;
                     short weight = tsdfMatrix.at<cv::Vec<short, 2>>(k * dy + j, i)[1];
 
-                    // if (tsdfValue != 0){
-                    //     std::cout << "(tsdfValue, weight): (" << tsdfValue << ", " << weight << ")" << std::endl;
-                    // }
-
-                    // if (abs(tsdfValue) > truncation_distance || tsdfValue == 0) {
-                    //     // Skip invalid TSDF values
-                    //     continue;
-                    // }
-
-                    if (abs(tsdfValue) < truncation_distance && tsdfValue != 0){
+                    if (abs(tsdfValue) < 1.0f * DIVSHORTMAX * float(SHORTMAX-1) && tsdfValue != 0){
                         // Normalize the TSDF value to a 0-1 range
-                        float normalized_tsdf = (tsdfValue - (-truncation_distance)) / (truncation_distance - (-truncation_distance));
+                        float normalized_tsdf = (tsdfValue - (-1.0f)) / (1.0f - (-1.0f));
 
                         Point point;
                         point.x = i * voxel_scale;
