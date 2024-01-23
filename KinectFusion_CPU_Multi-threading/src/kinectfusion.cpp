@@ -287,7 +287,7 @@ void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::stri
                     float tsdfValue = tsdfMatrix.at<cv::Vec<short, 2>>(k * dy + j, i)[0] * DIVSHORTMAX;
                     short weight = tsdfMatrix.at<cv::Vec<short, 2>>(k * dy + j, i)[1];
 
-                    if (abs(tsdfValue) < 1.0f * DIVSHORTMAX * float(SHORTMAX-1) && tsdfValue != 0){
+                    if (abs(tsdfValue) < 1.0f - 1e-4 && tsdfValue != 0){
                         // Normalize the TSDF value to a 0-1 range
                         float normalized_tsdf = (tsdfValue - (-1.0f)) / (1.0f - (-1.0f));
 
