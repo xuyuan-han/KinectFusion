@@ -61,16 +61,15 @@ void Surface_Reconstruction::reconstructionProcessVolumeSlice(VolumeData* vol, c
 
 						if (sdf >= -trancutionDistance)
 						{
-							float truncatedSDF = fmin(trancutionDistance, sdf);
-							float weight = 1.0f;
-							float oldSdf = vol->tsdf_volume.at<cv::Vec<short, 2>>(r, c)[0];
-							float oldWeight = vol->tsdf_volume.at<cv::Vec<short, 2>>(r, c)[1];
+							float truncatedSDF = fmin(1.f, sdf / trancutionDistance);
+							int weight = 1;
+							float oldSdf = vol->tsdf_volume.at<cv::Vec<short, 2>>(r, c)[0] * DIVSHORTMAX;
+							int oldWeight = vol->tsdf_volume.at<cv::Vec<short, 2>>(r, c)[1];
 							uint oldClass = vol->class_volume.at<uchar>(r, c);
 
-
-
-							float newSdf = (oldSdf * oldWeight + truncatedSDF * weight) / (oldWeight + weight);
-							float newWeight = oldWeight + weight;
+							float newSdf_float = (oldSdf * oldWeight + truncatedSDF * weight) / (oldWeight + weight);
+							int newWeight = std::min(oldWeight + weight, MAX_WEIGHT);
+							int newSdf_short = std::max(-SHORTMAX, std::min(SHORTMAX, static_cast<int>(newSdf_float * SHORTMAX)));
 
 							cv::Vec3b	 oldColor = vol->color_volume.at<cv::Vec3b>(r, c);
 							cv::Vec3b color = oldColor;
@@ -90,12 +89,10 @@ void Surface_Reconstruction::reconstructionProcessVolumeSlice(VolumeData* vol, c
 								// color[2] = 255;
 							}
 
-
-							vol->tsdf_volume.at<cv::Vec<short, 2>>(r, c)[0] = newSdf;
+							vol->tsdf_volume.at<cv::Vec<short, 2>>(r, c)[0] = newSdf_short;
 							vol->tsdf_volume.at<cv::Vec<short, 2>>(r, c)[1] = newWeight;
 							vol->color_volume.at<cv::Vec3b>(r, c) = color;
 
-								
 							#ifdef USE_CLASSES
 							uint newClass = class_map[pixel[1] * width + pixel[0]];
 
@@ -108,11 +105,7 @@ void Surface_Reconstruction::reconstructionProcessVolumeSlice(VolumeData* vol, c
 							}
 							vol->class_volume.at<uchar>(r, c) = newClass;
 							#endif // USE_CLASSES
-
-
 						}
-
-
 					}
 				}
             }

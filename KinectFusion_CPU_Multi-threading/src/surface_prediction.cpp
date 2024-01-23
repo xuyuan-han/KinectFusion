@@ -1,10 +1,5 @@
 #include "surface_prediction.hpp"
 
-#define DIVSHORTMAX 0.0000305185f 
-// #define DIVSHORTMAX 1.f 
-#define SHORTMAX    32767               // SHRT_MAX;
-#define MAX_WEIGHT  128                // max weight
-
 void surface_prediction(
     VolumeData& volume,                   // Global Volume
     cv::Mat& model_vertex,                       // predicted vertex
@@ -119,8 +114,7 @@ void raycast_tsdf_kernel_volume_slice(
 
             // std::cout << "tsdf: " << tsdf << std::endl;
             
-            //TODO: why not sqrt(3) * volume_range[0]?
-            const float max_search_length = ray_length + volume_range[0] * sqrt(2.f);
+            const float max_search_length = ray_length + sqrt(volume_range[0]*volume_range[0] + volume_range[1]*volume_range[1] + volume_range[2]*volume_range[2]);
 
             // int count = 0;
 
@@ -134,8 +128,9 @@ void raycast_tsdf_kernel_volume_slice(
                 //checkvalid
                 if (grid.x() < 1 || grid.x() >= volume_size[0] - 1 || 
                     grid.y() < 1 || grid.y() >= volume_size[1] - 1 ||
-                    grid.z() < 1 || grid.z() >= volume_size[2] - 1 )
-                        continue;
+                    grid.z() < 1 || grid.z() >= volume_size[2] - 1 ){
+                        break;
+                }
 
                 // if (tsdf != 0.f){
                 //     std::cout << "tsdf before: " << tsdf << std::endl;
@@ -484,8 +479,7 @@ void raycast_tsdf_kernel(
 
             // std::cout << "tsdf: " << tsdf << std::endl;
             
-            //TODO: why not sqrt(3) * volume_range[0]?
-            const float max_search_length = ray_length + volume_range[0] * sqrt(2.f);
+            const float max_search_length = ray_length + sqrt(volume_range[0]*volume_range[0] + volume_range[1]*volume_range[1] + volume_range[2]*volume_range[2]);
 
             // int count = 0;
 

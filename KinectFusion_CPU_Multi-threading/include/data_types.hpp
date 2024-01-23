@@ -13,6 +13,10 @@
 
 #define USE_CPU_MULTI_THREADING
 //#define USE_CLASSES
+
+#define DIVSHORTMAX 0.0000305185f 
+#define SHORTMAX    32767               // SHRT_MAX;
+#define MAX_WEIGHT  128                // max weight
 #define M_PI 3.14159265358979323846
 using Vector4uc = Eigen::Matrix<unsigned char, 4, 1>;
 
