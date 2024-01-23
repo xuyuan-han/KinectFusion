@@ -24,7 +24,6 @@ public:
 private:
     const CameraParameters camera_parameters;
     const GlobalConfiguration configuration;
-    Volume volume;
     VolumeData volumedata;
     ModelData model_data;
     Eigen::Matrix4f current_pose;

@@ -12,8 +12,10 @@
 #include <functional>
 
 #define USE_CPU_MULTI_THREADING
-
+//#define USE_CLASSES
+#define M_PI 3.14159265358979323846
 using Vector4uc = Eigen::Matrix<unsigned char, 4, 1>;
+
 
 struct GlobalConfiguration {
 	// The overall size of the volume. Will be allocated on the GPU and is thus limited by the amount of
@@ -615,6 +617,8 @@ struct Frame {
 struct VolumeData {
     cv::Mat tsdf_volume; //short2
     cv::Mat color_volume; //uchar4
+	// Class data
+	cv::Mat class_volume; //uint
     Eigen::Vector3i volume_size;
     float voxel_scale;
 
@@ -622,10 +626,40 @@ struct VolumeData {
             //TSDF volume is 2 channel, one channel for TSDF value, one channel for weight
             tsdf_volume(cv::Mat(_volume_size[1] * _volume_size[2], _volume_size[0], CV_16SC2)),
             color_volume(cv::Mat(_volume_size[1] * _volume_size[2], _volume_size[0], CV_8UC3)),
+			class_volume(cv::Mat(_volume_size[1] * _volume_size[2], _volume_size[0], CV_8UC1)),
             volume_size(_volume_size), voxel_scale(_voxel_scale)
     {
         // initialize the volume
         tsdf_volume.setTo(0);
         color_volume.setTo(0);
     }
+
+	cv::Mat getTSDFVolume() {
+		return tsdf_volume;
+	}
+
+	cv::Mat getColorVolume() {
+		return color_volume;
+	}
+
+	cv::Mat getClassVolume() {
+		return class_volume;
+	}
+
+
+	//! Returns the cartesian coordinates of node (row, col).
+	inline Eigen::Vector3d pos(int row, int col) const
+	{
+		Eigen::Vector3d coord(0, 0, 0);
+
+		int i = col;
+		int k = row / volume_size[1];
+		int j = row % volume_size[1];
+
+		coord[0] = i * voxel_scale;
+		coord[1] = j * voxel_scale;
+		coord[2] = k * voxel_scale;
+
+		return coord;
+		}
 };

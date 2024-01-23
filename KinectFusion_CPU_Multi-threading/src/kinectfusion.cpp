@@ -4,7 +4,6 @@ Pipeline::Pipeline(const CameraParameters _camera_parameters,
                     const GlobalConfiguration _configuration) :
         camera_parameters(_camera_parameters),
         configuration(_configuration),
-        volume(_configuration.volume_size, _configuration.voxel_scale),
         volumedata(_configuration.volume_size, _configuration.voxel_scale),
         model_data(_configuration.num_levels, _camera_parameters),
         current_pose{},
@@ -97,7 +96,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     Surface_Reconstruction::integrate_multi_threads(
         frame_data.depth_pyramid[0],
         frame_data.color_pyramid[0],
-        &volume,
+        &volumedata,
         camera_parameters,
         configuration.truncation_distance,
         current_pose);
@@ -105,7 +104,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     Surface_Reconstruction::integrate(
         frame_data.depth_pyramid[0],
         frame_data.color_pyramid[0],
-        &volume,
+        &volumedata,
         camera_parameters,
         configuration.truncation_distance,
         current_pose);
@@ -115,28 +114,6 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     std::cout << "-- Surface reconstruct: " << elapsed.count() << " ms" << std::endl;
 
     // std::cout << ">>> 3 Surface reconstruction done" << std::endl;
-
-    // std::cout << ">> 3.5 Point cloud generation begin" << std::endl;
-
-    // volumedata.tsdf_volume = volume.getVolume();
-    // volumedata.color_volume = volume.getColorVolume();
-
-    start = std::chrono::high_resolution_clock::now(); // start time measurement
-
-    // volumedata.tsdf_volume = volume.getVolumeData();
-    // volumedata.color_volume = volume.getColorVolumeData();
-    volumedata.tsdf_volume = volume.getVolumeData_multi_threads();
-    volumedata.color_volume = volume.getColorVolumeData_multi_threads();
-
-    // std::cout << volumedata.color_volume << std::endl;
-
-    auto end_transfer = std::chrono::high_resolution_clock::now(); // end time measurement
-    std::chrono::duration<double, std::milli> elapsed_transfer = end_transfer - start; // elapsed time in milliseconds
-    std::cout << "-- Volumedata transfer:\t" << elapsed_transfer.count() << " ms\n";
-
-    // save_tsdf_color_volume_point_cloud();
-
-    // std::cout << ">>> 3.5 Point cloud generation done" << std::endl;
 
     // std::cout << ">> 4 Surface prediction begin" << std::endl;
 
