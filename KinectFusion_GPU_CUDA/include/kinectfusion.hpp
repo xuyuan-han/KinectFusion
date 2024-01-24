@@ -27,6 +27,8 @@ private:
     const GlobalConfiguration configuration;
     CPU::VolumeData volumedata;
     CPU::ModelData model_data;
+    GPU::VolumeData volume_data_GPU;
+    GPU::ModelData model_data_GPU;
     Eigen::Matrix4f current_pose;
     std::vector<Eigen::Matrix4f> poses;
     cv::Mat last_model_color_frame;

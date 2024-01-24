@@ -6,6 +6,8 @@ Pipeline::Pipeline(const CameraParameters _camera_parameters,
         configuration(_configuration),
         volumedata(_configuration.volume_size, _configuration.voxel_scale),
         model_data(_configuration.num_levels, _camera_parameters),
+        volume_data_GPU(_configuration.volume_size_int3, _configuration.voxel_scale),
+        model_data_GPU(_configuration.num_levels, _camera_parameters),
         current_pose{},
         poses{},
         frame_id{0}
