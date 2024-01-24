@@ -206,5 +206,5 @@ namespace GPU{
                 }
             }
         }
-    }
+    } // namespace CUDA
 } // namespace GPU

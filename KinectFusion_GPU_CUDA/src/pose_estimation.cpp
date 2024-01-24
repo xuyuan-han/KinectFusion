@@ -33,7 +33,7 @@ namespace GPU{
                 Eigen::Matrix<double, 6, 1> b {};
 
                 // Estimate one step on the CPU
-                GPU::CUDA::estimate_step(current_global_rotation, current_global_translation,
+                CUDA::estimate_step(current_global_rotation, current_global_translation,
                                     frame_data.vertex_pyramid[level], frame_data.normal_pyramid[level],
                                     previous_global_rotation_inverse, previous_global_translation,
                                     cam_params.level(level),

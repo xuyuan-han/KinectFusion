@@ -32,11 +32,21 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 {
     // std::cout << ">> 1 Surface measurement begin" << std::endl;
 
+    // GPU::FrameData frame_data_GPU(configuration.num_levels);
+    CPU::FrameData frame_data(configuration.num_levels);
+    
     auto start = std::chrono::high_resolution_clock::now();
 
-    GPU::FrameData frame_data_GPU(configuration.num_levels);
+    // CPU::FrameData frame_data = CPU::surface_measurement(
+    //     depth_map,
+    //     camera_parameters,
+    //     configuration.num_levels,
+    //     configuration.depth_cutoff_distance,
+    //     configuration.bfilter_kernel_size,
+    //     configuration.bfilter_color_sigma,
+    //     configuration.bfilter_spatial_sigma);
 
-    CPU::FrameData frame_data = CPU::surface_measurement(
+    GPU::FrameData frame_data_GPU = GPU::surface_measurement(
         depth_map,
         camera_parameters,
         configuration.num_levels,
@@ -44,10 +54,20 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         configuration.bfilter_kernel_size,
         configuration.bfilter_color_sigma,
         configuration.bfilter_spatial_sigma);
-    frame_data.color_pyramid[0] = color_map;
+
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
     std::cout << "-- Surface measurement:\t" << elapsed.count() << " ms" << std::endl;
+
+    // frame_data.color_pyramid[0] = color_map;
+    frame_data_GPU.color_pyramid[0].upload(color_map);
+
+    for (size_t i = 0; i < frame_data.depth_pyramid.size(); ++i) {
+        frame_data_GPU.depth_pyramid[i].download(frame_data.depth_pyramid[i]);
+        frame_data_GPU.color_pyramid[i].download(frame_data.color_pyramid[i]);
+        frame_data_GPU.vertex_pyramid[i].download(frame_data.vertex_pyramid[i]);
+        frame_data_GPU.normal_pyramid[i].download(frame_data.normal_pyramid[i]);
+    }
 
     // std::cout << frame_data.depth_pyramid[0] << std::endl;
 
