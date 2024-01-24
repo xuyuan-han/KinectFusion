@@ -1,6 +1,6 @@
 #include "kinectfusion.hpp"
 
-// #define MAXFRAMECNT 80 // Process MAXFRAMECNT frames, comment out this line to process all frames
+// #define MAXFRAMECNT 1 // Process MAXFRAMECNT frames, comment out this line to process all frames
 
 int main(int argc, char **argv)
 {
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
     std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
     std::cout << ">> Point cloud generation begin" << std::endl;
     auto start = std::chrono::high_resolution_clock::now(); // start time measurement
-    pipeline.save_tsdf_color_volume_point_cloud();
+    // pipeline.save_tsdf_color_volume_point_cloud();
     auto end_save = std::chrono::high_resolution_clock::now(); // end time measurement
     std::chrono::duration<double, std::milli> elapsed_save = end_save - start; // elapsed time in milliseconds
     std::cout << "-- Save point cloud time: " << elapsed_save.count() << " ms\n";

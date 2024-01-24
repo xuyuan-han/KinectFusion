@@ -81,31 +81,21 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     elapsed = end - start;
     std::cout << "-- Pose estimation:\t" << elapsed.count() << " ms" << std::endl;
 
-    for (size_t i = 0; i < frame_data.depth_pyramid.size(); ++i) { // for surface reconstruction
-        frame_data_GPU.depth_pyramid[i].download(frame_data.depth_pyramid[i]);
-        frame_data_GPU.color_pyramid[i].download(frame_data.color_pyramid[i]);
-        frame_data_GPU.vertex_pyramid[i].download(frame_data.vertex_pyramid[i]);
-        frame_data_GPU.normal_pyramid[i].download(frame_data.normal_pyramid[i]);
-    }
-
     if (!icp_success)
         return false;
     poses.push_back(current_pose);
 
     start = std::chrono::high_resolution_clock::now();
-    CPU::Surface_Reconstruction::integrate_multi_threads(
-        frame_data.depth_pyramid[0],
-        frame_data.color_pyramid[0],
-        &volumedata,
+    GPU::surface_reconstruction(
+        frame_data_GPU.depth_pyramid[0],
+        frame_data_GPU.color_pyramid[0],
+        volume_data_GPU,
         camera_parameters,
         configuration.truncation_distance,
-        current_pose);
+        current_pose.inverse());
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
     std::cout << "-- Surface reconstruct: " << elapsed.count() << " ms" << std::endl;
-
-    volume_data_GPU.tsdf_volume.upload(volumedata.tsdf_volume); // after surface reconstruction
-    volume_data_GPU.color_volume.upload(volumedata.color_volume); // for surface prediction
 
     start = std::chrono::high_resolution_clock::now();
     for (int level = 0; level < configuration.num_levels; ++level){
@@ -164,6 +154,8 @@ cv::Mat Pipeline::get_last_model_normal_frame_in_camera() const
 
 void Pipeline::save_tsdf_color_volume_point_cloud() const
 {
+    volume_data_GPU.tsdf_volume.download(volumedata.tsdf_volume);
+    volume_data_GPU.color_volume.download(volumedata.color_volume);
     // createAndSavePointCloud(volumedata.tsdf_volume, "pointcloud.ply", configuration.volume_size);
     // createAndSavePointCloudVolumeData(volumedata.tsdf_volume, current_pose, "VolumeData_PointCloud.ply", configuration.volume_size, true);
     createAndSavePointCloudVolumeData_multi_threads(volumedata.tsdf_volume, poses, "TSDF_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, configuration.truncation_distance, true);
