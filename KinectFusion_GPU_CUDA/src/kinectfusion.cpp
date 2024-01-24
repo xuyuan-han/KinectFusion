@@ -157,14 +157,38 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     // std::cout << ">> 4 Surface prediction begin" << std::endl;
 
+    volume_data_GPU.tsdf_volume.upload(volumedata.tsdf_volume);
+    volume_data_GPU.color_volume.upload(volumedata.color_volume);
+
+    for (size_t i = 0; i < frame_data.depth_pyramid.size(); ++i) {
+        frame_data_GPU.depth_pyramid[i].upload(frame_data.depth_pyramid[i]);
+        frame_data_GPU.color_pyramid[i].upload(frame_data.color_pyramid[i]);
+        frame_data_GPU.vertex_pyramid[i].upload(frame_data.vertex_pyramid[i]);
+        frame_data_GPU.normal_pyramid[i].upload(frame_data.normal_pyramid[i]);
+    }
+
+    for (size_t i = 0; i < model_data.vertex_pyramid.size(); ++i) {
+        model_data_GPU.vertex_pyramid[i].upload(model_data.vertex_pyramid[i]);
+        model_data_GPU.normal_pyramid[i].upload(model_data.normal_pyramid[i]);
+        model_data_GPU.color_pyramid[i].upload(model_data.color_pyramid[i]);
+    }
+
     start = std::chrono::high_resolution_clock::now();
     for (int level = 0; level < configuration.num_levels; ++level){
         // std::cout << ">> 4 (level)" << level << " Surface prediction begin" << std::endl;
-        CPU::surface_prediction(
-            volumedata,
-            model_data.vertex_pyramid[level],
-            model_data.normal_pyramid[level],
-            model_data.color_pyramid[level],
+        // CPU::surface_prediction(
+        //     volumedata,
+        //     model_data.vertex_pyramid[level],
+        //     model_data.normal_pyramid[level],
+        //     model_data.color_pyramid[level],
+        //     camera_parameters.level(level),
+        //     configuration.truncation_distance,
+        //     current_pose);
+        GPU::surface_prediction(
+            volume_data_GPU,
+            model_data_GPU.vertex_pyramid[level],
+            model_data_GPU.normal_pyramid[level],
+            model_data_GPU.color_pyramid[level],
             camera_parameters.level(level),
             configuration.truncation_distance,
             current_pose);
@@ -173,6 +197,22 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
     std::cout << "-- Surface prediction:\t" << elapsed.count() << " ms" << std::endl;
+
+    for (size_t i = 0; i < frame_data.depth_pyramid.size(); ++i) {
+        frame_data_GPU.depth_pyramid[i].download(frame_data.depth_pyramid[i]);
+        frame_data_GPU.color_pyramid[i].download(frame_data.color_pyramid[i]);
+        frame_data_GPU.vertex_pyramid[i].download(frame_data.vertex_pyramid[i]);
+        frame_data_GPU.normal_pyramid[i].download(frame_data.normal_pyramid[i]);
+    }
+
+    for (size_t i = 0; i < model_data.vertex_pyramid.size(); ++i) {
+        model_data_GPU.vertex_pyramid[i].download(model_data.vertex_pyramid[i]);
+        model_data_GPU.normal_pyramid[i].download(model_data.normal_pyramid[i]);
+        model_data_GPU.color_pyramid[i].download(model_data.color_pyramid[i]);
+    }
+
+    volume_data_GPU.tsdf_volume.download(volumedata.tsdf_volume);
+    volume_data_GPU.color_volume.download(volumedata.color_volume);
 
     // std::cout << ">>> 4 Surface prediction done" << std::endl;
 
