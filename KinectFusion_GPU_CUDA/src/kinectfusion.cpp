@@ -30,21 +30,9 @@ Pipeline::Pipeline(const CameraParameters _camera_parameters,
 
 bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map)
 {
-    // std::cout << ">> 1 Surface measurement begin" << std::endl;
-
-    // GPU::FrameData frame_data_GPU(configuration.num_levels);
     CPU::FrameData frame_data(configuration.num_levels);
     
     auto start = std::chrono::high_resolution_clock::now();
-
-    // CPU::FrameData frame_data = CPU::surface_measurement(
-    //     depth_map,
-    //     camera_parameters,
-    //     configuration.num_levels,
-    //     configuration.depth_cutoff_distance,
-    //     configuration.bfilter_kernel_size,
-    //     configuration.bfilter_color_sigma,
-    //     configuration.bfilter_spatial_sigma);
 
     GPU::FrameData frame_data_GPU = GPU::surface_measurement(
         depth_map,
@@ -59,62 +47,26 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     std::chrono::duration<double, std::milli> elapsed = end - start;
     std::cout << "-- Surface measurement:\t" << elapsed.count() << " ms" << std::endl;
 
-    // frame_data.color_pyramid[0] = color_map;
     frame_data_GPU.color_pyramid[0].upload(color_map);
 
-    for (size_t i = 0; i < frame_data.depth_pyramid.size(); ++i) {
+    for (size_t i = 0; i < frame_data.depth_pyramid.size(); ++i) { // for cv::imshow
         frame_data_GPU.depth_pyramid[i].download(frame_data.depth_pyramid[i]);
         frame_data_GPU.color_pyramid[i].download(frame_data.color_pyramid[i]);
         frame_data_GPU.vertex_pyramid[i].download(frame_data.vertex_pyramid[i]);
         frame_data_GPU.normal_pyramid[i].download(frame_data.normal_pyramid[i]);
     }
-
-    // std::cout << frame_data.depth_pyramid[0] << std::endl;
-
     if (frame_id > 0){
-        // cv::imshow("frame_data.depth_pyramid[0]", frame_data.depth_pyramid[0]);
-        // cv::imshow("frame_data.color_pyramid[0]", frame_data.color_pyramid[0]);
-
         cv::imshow("SurfaceMeasurement Output: normal_pyramid[0]", frame_data.normal_pyramid[0]);
         cv::moveWindow("SurfaceMeasurement Output: normal_pyramid[0]", frame_data.normal_pyramid[0].cols, 0);
-
-        // std::cout << "frame_data.normal_pyramid[0] (480*0.40, 640*0.66): " << frame_data.normal_pyramid[0].at<cv::Vec3f>(480*0.40, 640*0.66) << std::endl;
 
         cv::imshow("SurfaceMeasurement Output: vertex_pyramid[0]", frame_data.vertex_pyramid[0]);
         cv::moveWindow("SurfaceMeasurement Output: vertex_pyramid[0]", frame_data.vertex_pyramid[0].cols*2, 0);
         cv::waitKey(1);
     }
     
-    // std::cout << "Pose before ICP: \n" << current_pose << std::endl;
-    // std::cout << ">>> 1 Surface measurement done" << std::endl;
-
-    // std::cout << ">> 2 Pose estimation begin" << std::endl;
-
-    for (size_t i = 0; i < frame_data.depth_pyramid.size(); ++i) {
-        frame_data_GPU.depth_pyramid[i].upload(frame_data.depth_pyramid[i]);
-        frame_data_GPU.color_pyramid[i].upload(frame_data.color_pyramid[i]);
-        frame_data_GPU.vertex_pyramid[i].upload(frame_data.vertex_pyramid[i]);
-        frame_data_GPU.normal_pyramid[i].upload(frame_data.normal_pyramid[i]);
-    }
-
-    for (size_t i = 0; i < model_data.vertex_pyramid.size(); ++i) {
-        model_data_GPU.vertex_pyramid[i].upload(model_data.vertex_pyramid[i]);
-        model_data_GPU.normal_pyramid[i].upload(model_data.normal_pyramid[i]);
-        model_data_GPU.color_pyramid[i].upload(model_data.color_pyramid[i]);
-    }
-
     start = std::chrono::high_resolution_clock::now();
     bool icp_success { true };
     if (frame_id > 0) { // Do not perform ICP for the very first frame
-        // icp_success = CPU::pose_estimation(
-        //     current_pose,
-        //     frame_data,
-        //     model_data,
-        //     camera_parameters,
-        //     configuration.num_levels,
-        //     configuration.distance_threshold,
-        //     configuration.angle_threshold,
-        //     configuration.icp_iterations);
         icp_success = GPU::pose_estimation(
             current_pose,
             frame_data_GPU,
@@ -129,30 +81,18 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     elapsed = end - start;
     std::cout << "-- Pose estimation:\t" << elapsed.count() << " ms" << std::endl;
 
-    for (size_t i = 0; i < frame_data.depth_pyramid.size(); ++i) {
+    for (size_t i = 0; i < frame_data.depth_pyramid.size(); ++i) { // for surface reconstruction
         frame_data_GPU.depth_pyramid[i].download(frame_data.depth_pyramid[i]);
         frame_data_GPU.color_pyramid[i].download(frame_data.color_pyramid[i]);
         frame_data_GPU.vertex_pyramid[i].download(frame_data.vertex_pyramid[i]);
         frame_data_GPU.normal_pyramid[i].download(frame_data.normal_pyramid[i]);
     }
 
-    for (size_t i = 0; i < model_data.vertex_pyramid.size(); ++i) {
-        model_data_GPU.vertex_pyramid[i].download(model_data.vertex_pyramid[i]);
-        model_data_GPU.normal_pyramid[i].download(model_data.normal_pyramid[i]);
-        model_data_GPU.color_pyramid[i].download(model_data.color_pyramid[i]);
-    }
-
     if (!icp_success)
         return false;
     poses.push_back(current_pose);
-    // std::cout << "Pose after ICP: \n" << std::fixed << std::setprecision(2) << current_pose << std::endl;
-
-    // std::cout << ">>> 2 Pose estimation done" << std::endl;
-
-    // std::cout << ">> 3 Surface reconstruction begin" << std::endl;
 
     start = std::chrono::high_resolution_clock::now();
-#ifdef USE_CPU_MULTI_THREADING
     CPU::Surface_Reconstruction::integrate_multi_threads(
         frame_data.depth_pyramid[0],
         frame_data.color_pyramid[0],
@@ -160,50 +100,15 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         camera_parameters,
         configuration.truncation_distance,
         current_pose);
-#else
-    Surface_Reconstruction::integrate(
-        frame_data.depth_pyramid[0],
-        frame_data.color_pyramid[0],
-        &volumedata,
-        camera_parameters,
-        configuration.truncation_distance,
-        current_pose);
-#endif
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
     std::cout << "-- Surface reconstruct: " << elapsed.count() << " ms" << std::endl;
 
-    // std::cout << ">>> 3 Surface reconstruction done" << std::endl;
-
-    // std::cout << ">> 4 Surface prediction begin" << std::endl;
-
-    volume_data_GPU.tsdf_volume.upload(volumedata.tsdf_volume);
-    volume_data_GPU.color_volume.upload(volumedata.color_volume);
-
-    for (size_t i = 0; i < frame_data.depth_pyramid.size(); ++i) {
-        frame_data_GPU.depth_pyramid[i].upload(frame_data.depth_pyramid[i]);
-        frame_data_GPU.color_pyramid[i].upload(frame_data.color_pyramid[i]);
-        frame_data_GPU.vertex_pyramid[i].upload(frame_data.vertex_pyramid[i]);
-        frame_data_GPU.normal_pyramid[i].upload(frame_data.normal_pyramid[i]);
-    }
-
-    for (size_t i = 0; i < model_data.vertex_pyramid.size(); ++i) {
-        model_data_GPU.vertex_pyramid[i].upload(model_data.vertex_pyramid[i]);
-        model_data_GPU.normal_pyramid[i].upload(model_data.normal_pyramid[i]);
-        model_data_GPU.color_pyramid[i].upload(model_data.color_pyramid[i]);
-    }
+    volume_data_GPU.tsdf_volume.upload(volumedata.tsdf_volume); // after surface reconstruction
+    volume_data_GPU.color_volume.upload(volumedata.color_volume); // for surface prediction
 
     start = std::chrono::high_resolution_clock::now();
     for (int level = 0; level < configuration.num_levels; ++level){
-        // std::cout << ">> 4 (level)" << level << " Surface prediction begin" << std::endl;
-        // CPU::surface_prediction(
-        //     volumedata,
-        //     model_data.vertex_pyramid[level],
-        //     model_data.normal_pyramid[level],
-        //     model_data.color_pyramid[level],
-        //     camera_parameters.level(level),
-        //     configuration.truncation_distance,
-        //     current_pose);
         GPU::surface_prediction(
             volume_data_GPU,
             model_data_GPU.vertex_pyramid[level],
@@ -212,29 +117,16 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
             camera_parameters.level(level),
             configuration.truncation_distance,
             current_pose);
-        // std::cout << ">> 4 (level)" << level << " Surface prediction done" << std::endl;
     }
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
     std::cout << "-- Surface prediction:\t" << elapsed.count() << " ms" << std::endl;
 
-    for (size_t i = 0; i < frame_data.depth_pyramid.size(); ++i) {
-        frame_data_GPU.depth_pyramid[i].download(frame_data.depth_pyramid[i]);
-        frame_data_GPU.color_pyramid[i].download(frame_data.color_pyramid[i]);
-        frame_data_GPU.vertex_pyramid[i].download(frame_data.vertex_pyramid[i]);
-        frame_data_GPU.normal_pyramid[i].download(frame_data.normal_pyramid[i]);
-    }
-
-    for (size_t i = 0; i < model_data.vertex_pyramid.size(); ++i) {
+    for (size_t i = 0; i < model_data.vertex_pyramid.size(); ++i) { // for cv::imshow
         model_data_GPU.vertex_pyramid[i].download(model_data.vertex_pyramid[i]);
         model_data_GPU.normal_pyramid[i].download(model_data.normal_pyramid[i]);
         model_data_GPU.color_pyramid[i].download(model_data.color_pyramid[i]);
     }
-
-    volume_data_GPU.tsdf_volume.download(volumedata.tsdf_volume);
-    volume_data_GPU.color_volume.download(volumedata.color_volume);
-
-    // std::cout << ">>> 4 Surface prediction done" << std::endl;
 
     last_model_color_frame = model_data.color_pyramid[0];
     last_model_vertex_frame = model_data.vertex_pyramid[0];
