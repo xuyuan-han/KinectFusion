@@ -9,7 +9,7 @@
 
 class Pipeline {
 public:
-    Pipeline(const CameraParameters _camera_parameters, const GlobalConfiguration _configuration);
+    Pipeline(const CPU::CameraParameters _camera_parameters, const CPU::GlobalConfiguration _configuration);
 
     ~Pipeline() = default;
 
@@ -22,10 +22,10 @@ public:
     void save_tsdf_color_volume_point_cloud() const;
     
 private:
-    const CameraParameters camera_parameters;
-    const GlobalConfiguration configuration;
-    VolumeData volumedata;
-    ModelData model_data;
+    const CPU::CameraParameters camera_parameters;
+    const CPU::GlobalConfiguration configuration;
+    CPU::VolumeData volumedata;
+    CPU::ModelData model_data;
     Eigen::Matrix4f current_pose;
     std::vector<Eigen::Matrix4f> poses;
     cv::Mat last_model_color_frame;

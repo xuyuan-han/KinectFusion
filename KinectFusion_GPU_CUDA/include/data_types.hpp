@@ -20,6 +20,7 @@
 #define M_PI 3.14159265358979323846
 using Vector4uc = Eigen::Matrix<unsigned char, 4, 1>;
 
+namespace CPU{
 
 struct GlobalConfiguration {
 	// The overall size of the volume. Will be allocated on the GPU and is thus limited by the amount of
@@ -667,3 +668,4 @@ struct VolumeData {
 		return coord;
 		}
 };
+} // namespace CPU

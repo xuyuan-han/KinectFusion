@@ -1,7 +1,7 @@
 #include "kinectfusion.hpp"
 
-Pipeline::Pipeline(const CameraParameters _camera_parameters,
-                    const GlobalConfiguration _configuration) :
+Pipeline::Pipeline(const CPU::CameraParameters _camera_parameters,
+                    const CPU::GlobalConfiguration _configuration) :
         camera_parameters(_camera_parameters),
         configuration(_configuration),
         volumedata(_configuration.volume_size, _configuration.voxel_scale),
@@ -31,7 +31,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     // std::cout << ">> 1 Surface measurement begin" << std::endl;
 
     auto start = std::chrono::high_resolution_clock::now();
-    FrameData frame_data = CPU::surface_measurement(
+    CPU::FrameData frame_data = CPU::surface_measurement(
         depth_map,
         camera_parameters,
         configuration.num_levels,
