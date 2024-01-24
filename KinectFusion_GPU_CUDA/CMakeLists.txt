@@ -25,7 +25,7 @@ if (EIGEN3_INCLUDE_DIR)
 endif (EIGEN3_INCLUDE_DIR)
 
 SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Weffc++")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Weffc++") # add detailed warnings for C++ code
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 

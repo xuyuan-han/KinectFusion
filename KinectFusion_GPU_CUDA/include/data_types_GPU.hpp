@@ -1,12 +1,12 @@
 #pragma once
 
-#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wall"
-#pragma GCC diagnostic ignored "-Wextra"
-#pragma GCC diagnostic ignored "-Weffc++"
-#pragma GCC diagnostic pop
-#endif
+// #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
+// #pragma GCC diagnostic push
+// #pragma GCC diagnostic ignored "-Wall"
+// #pragma GCC diagnostic ignored "-Wextra"
+// #pragma GCC diagnostic ignored "-Weffc++"
+// #pragma GCC diagnostic pop
+// #endif
 
 #include "cuda.h"
 #include "cuda_runtime.h"
@@ -33,6 +33,9 @@
 #define MAX_WEIGHT  128                // max weight
 #define M_PI 3.14159265358979323846
 using Vector4uc = Eigen::Matrix<unsigned char, 4, 1>;
+
+using cv::cuda::PtrStep;
+using cv::cuda::PtrStepSz;
 using cv::cuda::GpuMat;
 
 struct GlobalConfiguration {

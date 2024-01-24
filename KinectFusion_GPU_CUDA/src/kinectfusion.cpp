@@ -33,6 +33,9 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     // std::cout << ">> 1 Surface measurement begin" << std::endl;
 
     auto start = std::chrono::high_resolution_clock::now();
+
+    GPU::FrameData frame_data_GPU(configuration.num_levels);
+
     CPU::FrameData frame_data = CPU::surface_measurement(
         depth_map,
         camera_parameters,
@@ -67,13 +70,35 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     // std::cout << ">> 2 Pose estimation begin" << std::endl;
 
+    for (size_t i = 0; i < frame_data.depth_pyramid.size(); ++i) {
+        frame_data_GPU.depth_pyramid[i].upload(frame_data.depth_pyramid[i]);
+        frame_data_GPU.color_pyramid[i].upload(frame_data.color_pyramid[i]);
+        frame_data_GPU.vertex_pyramid[i].upload(frame_data.vertex_pyramid[i]);
+        frame_data_GPU.normal_pyramid[i].upload(frame_data.normal_pyramid[i]);
+    }
+
+    for (size_t i = 0; i < model_data.vertex_pyramid.size(); ++i) {
+        model_data_GPU.vertex_pyramid[i].upload(model_data.vertex_pyramid[i]);
+        model_data_GPU.normal_pyramid[i].upload(model_data.normal_pyramid[i]);
+        model_data_GPU.color_pyramid[i].upload(model_data.color_pyramid[i]);
+    }
+
     start = std::chrono::high_resolution_clock::now();
     bool icp_success { true };
     if (frame_id > 0) { // Do not perform ICP for the very first frame
-        icp_success = CPU::pose_estimation(
+        // icp_success = CPU::pose_estimation(
+        //     current_pose,
+        //     frame_data,
+        //     model_data,
+        //     camera_parameters,
+        //     configuration.num_levels,
+        //     configuration.distance_threshold,
+        //     configuration.angle_threshold,
+        //     configuration.icp_iterations);
+        icp_success = GPU::pose_estimation(
             current_pose,
-            frame_data,
-            model_data,
+            frame_data_GPU,
+            model_data_GPU,
             camera_parameters,
             configuration.num_levels,
             configuration.distance_threshold,
@@ -83,6 +108,19 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
     std::cout << "-- Pose estimation:\t" << elapsed.count() << " ms" << std::endl;
+
+    for (size_t i = 0; i < frame_data.depth_pyramid.size(); ++i) {
+        frame_data_GPU.depth_pyramid[i].download(frame_data.depth_pyramid[i]);
+        frame_data_GPU.color_pyramid[i].download(frame_data.color_pyramid[i]);
+        frame_data_GPU.vertex_pyramid[i].download(frame_data.vertex_pyramid[i]);
+        frame_data_GPU.normal_pyramid[i].download(frame_data.normal_pyramid[i]);
+    }
+
+    for (size_t i = 0; i < model_data.vertex_pyramid.size(); ++i) {
+        model_data_GPU.vertex_pyramid[i].download(model_data.vertex_pyramid[i]);
+        model_data_GPU.normal_pyramid[i].download(model_data.normal_pyramid[i]);
+        model_data_GPU.color_pyramid[i].download(model_data.color_pyramid[i]);
+    }
 
     if (!icp_success)
         return false;
