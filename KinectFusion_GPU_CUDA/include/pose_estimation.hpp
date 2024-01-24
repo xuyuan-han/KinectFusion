@@ -1,5 +1,6 @@
 #pragma once
-#include "data_types.hpp"
+#include "data_types_CPU.hpp"
+// #include "data_types_GPU.hpp"
 
 namespace CPU{
 

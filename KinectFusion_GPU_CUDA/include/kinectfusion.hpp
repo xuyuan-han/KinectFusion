@@ -4,12 +4,13 @@
 #include "surface_prediction.hpp"
 #include "surface_reconstruction.hpp"
 #include "VirtualSensor.hpp"
-#include "data_types.hpp"
+#include "data_types_CPU.hpp"
+// #include "data_types_GPU.hpp"
 // #include <opencv2/viz/viz3d.hpp>
 
 class Pipeline {
 public:
-    Pipeline(const CPU::CameraParameters _camera_parameters, const CPU::GlobalConfiguration _configuration);
+    Pipeline(const CameraParameters _camera_parameters, const GlobalConfiguration _configuration);
 
     ~Pipeline() = default;
 
@@ -22,8 +23,8 @@ public:
     void save_tsdf_color_volume_point_cloud() const;
     
 private:
-    const CPU::CameraParameters camera_parameters;
-    const CPU::GlobalConfiguration configuration;
+    const CameraParameters camera_parameters;
+    const GlobalConfiguration configuration;
     CPU::VolumeData volumedata;
     CPU::ModelData model_data;
     Eigen::Matrix4f current_pose;

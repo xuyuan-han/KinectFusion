@@ -1,7 +1,7 @@
 #include "kinectfusion.hpp"
 
-Pipeline::Pipeline(const CPU::CameraParameters _camera_parameters,
-                    const CPU::GlobalConfiguration _configuration) :
+Pipeline::Pipeline(const CameraParameters _camera_parameters,
+                    const GlobalConfiguration _configuration) :
         camera_parameters(_camera_parameters),
         configuration(_configuration),
         volumedata(_configuration.volume_size, _configuration.voxel_scale),

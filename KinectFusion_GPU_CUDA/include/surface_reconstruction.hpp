@@ -2,7 +2,8 @@
 #ifndef SURFACE_RECON_HPP
 #define SURFACE_RECON_HPP
 
-#include "data_types.hpp"
+#include "data_types_CPU.hpp"
+// #include "data_types_GPU.hpp"
 
 namespace CPU{
 

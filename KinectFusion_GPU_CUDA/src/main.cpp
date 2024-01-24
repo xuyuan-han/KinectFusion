@@ -11,8 +11,8 @@ int main(int argc, char **argv)
     std::cout << "Not using cpu multi-threading" << std::endl;
 #endif
 
-    CPU::CameraParameters cameraparameters;
-    CPU::GlobalConfiguration configuration;
+    CameraParameters cameraparameters;
+    GlobalConfiguration configuration;
 
     std::string filenameIn = std::string("../../Data/rgbd_dataset_freiburg1_xyz/");
 
