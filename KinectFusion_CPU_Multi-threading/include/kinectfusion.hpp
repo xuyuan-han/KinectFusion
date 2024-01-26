@@ -16,9 +16,8 @@ public:
     bool process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map);
     std::vector<Eigen::Matrix4f> get_poses() const;
     cv::Mat get_last_model_color_frame() const;
-    cv::Mat get_last_model_vertex_frame() const;
     cv::Mat get_last_model_normal_frame() const;
-    cv::Mat get_last_model_normal_frame_in_camera() const;
+    cv::Mat get_last_model_normal_frame_in_camera_coordinates() const;
     void save_tsdf_color_volume_point_cloud() const;
     
 private:
@@ -29,7 +28,6 @@ private:
     Eigen::Matrix4f current_pose;
     std::vector<Eigen::Matrix4f> poses;
     cv::Mat last_model_color_frame;
-    cv::Mat last_model_vertex_frame;
     cv::Mat last_model_normal_frame;
     size_t frame_id { 0 };
 };
@@ -38,10 +36,6 @@ struct Point {
     float x, y, z;
     uint8_t r, g, b; // Color
 };
-
-// void createAndSavePointCloud(const cv::Mat& tsdfMatrix, const std::string& outputFilename, Eigen::Vector3i volume_size);
-
-// void createAndSavePointCloudVolumeData(const cv::Mat& tsdfMatrix, Eigen::Matrix4f current_pose, const std::string& outputFilename, Eigen::Vector3i volume_size, bool showFaces = false);
 
 void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, float truncation_distance, bool showFaces);
 

@@ -58,31 +58,16 @@ int main(int argc, char **argv)
         cv::imshow("InputRGB", sensor.getColorRGBX());
         cv::moveWindow("InputRGB", 0, 0);
 
-        cv::imshow("InputDepth", sensor.getDepth());
+        cv::imshow("InputDepth", sensor.getDepth()/5000.f);
         cv::moveWindow("InputDepth", sensor.getColorRGBX().cols, 0);
         
         cv::imshow("SurfacePrediction Output: Color", pipeline.get_last_model_color_frame());
         cv::moveWindow("SurfacePrediction Output: Color", 0, sensor.getColorRGBX().rows + 40);
 
-        cv::imshow("SurfacePrediction Output: Normal", pipeline.get_last_model_normal_frame());
-        cv::moveWindow("SurfacePrediction Output: Normal", sensor.getColorRGBX().cols, sensor.getColorRGBX().rows + 40);
-
-        cv::imshow("SurfacePrediction Output: Normal (in camera frame)", pipeline.get_last_model_normal_frame_in_camera());
+        cv::imshow("SurfacePrediction Output: Normal (in camera frame)", pipeline.get_last_model_normal_frame_in_camera_coordinates());
         cv::moveWindow("SurfacePrediction Output: Normal (in camera frame)", sensor.getColorRGBX().cols, sensor.getColorRGBX().rows + 40);
 
-        // std::cout << "SurfacePrediction Output: Normal in camera frame (480*0.40, 640*0.66): " << pipeline.get_last_model_normal_frame_in_camera().at<cv::Vec3f>(480*0.40, 640*0.66) << std::endl;
-
-        cv::imshow("SurfacePrediction Output: Vertex", pipeline.get_last_model_vertex_frame());
-        cv::moveWindow("SurfacePrediction Output: Vertex", 2* sensor.getColorRGBX().cols, sensor.getColorRGBX().rows + 40);
-
-        std::string filenameOut = std::string("../output/");
-        cv::imwrite(filenameOut + "InputRGB_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", sensor.getColorRGBX());
-        cv::imwrite(filenameOut + "InputDepth_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", sensor.getDepth());
-        cv::imwrite(filenameOut + "SurfacePredictionOutputColor_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", pipeline.get_last_model_color_frame());
-        cv::imwrite(filenameOut + "SurfacePredictionOutputVertex_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", pipeline.get_last_model_vertex_frame());
-        cv::imwrite(filenameOut + "SurfacePredictionOutputNormal_" + std::to_string(sensor.getCurrentFrameCnt()) + ".png", pipeline.get_last_model_normal_frame());
-
-        cv::waitKey(100);
+        cv::waitKey(1);
 
         #ifdef MAXFRAMECNT
         if (sensor.getCurrentFrameCnt() == (maxFrameCnt-1)) {
@@ -100,5 +85,5 @@ int main(int argc, char **argv)
     std::cout << "-- Save point cloud time: " << elapsed_save.count() << " ms\n";
     std::cout << ">>> Point cloud generation done" << std::endl;
 
-    cv::waitKey(10);
+    cv::waitKey(1);
 }
