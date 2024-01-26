@@ -129,12 +129,12 @@ cv::Mat Pipeline::get_last_model_normal_frame_in_camera_coordinates() const
 
 void Pipeline::save_tsdf_color_volume_point_cloud() const
 {
-    createAndSavePointCloudVolumeData_multi_threads(volumedata.tsdf_volume, poses, "TSDF_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, configuration.truncation_distance, true);
-    createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, poses, "Color_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+    createAndSaveTSDFPointCloudVolumeData_multi_threads(volumedata.tsdf_volume, poses, "TSDF_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, configuration.truncation_distance, true);
+    createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, volumedata.tsdf_volume, poses, "Color_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
 }
 
 // multi threads version
-void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, float truncation_distance, bool showFaces) {
+void createAndSaveTSDFPointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, float truncation_distance, bool showFaces) {
     // Keep track of the number of vertices
     int numVertices = 0;
     int dx = volume_size[0];
@@ -152,7 +152,7 @@ void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, 
         int zStart = i * zStep;
         int zEnd = (i + 1) * zStep;
         if (i == numThreads - 1) zEnd = dz;
-        threads[i] = std::thread(savePointCloudProcessVolumeSlice, std::ref(tsdfMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, std::ref(numVerticesVec[i]), voxel_scale, truncation_distance, showFaces);
+        threads[i] = std::thread(saveTSDFPointCloudProcessVolumeSlice, std::ref(tsdfMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, std::ref(numVerticesVec[i]), voxel_scale, truncation_distance, showFaces);
     }
 
     for (auto& thread : threads) {
@@ -206,7 +206,7 @@ void createAndSavePointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, 
     plyFile.close();
 }
 
-void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, float truncation_distance, bool showFaces) {
+void saveTSDFPointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, float truncation_distance, bool showFaces) {
     std::ofstream tempFile(tempFilename);
     if (!tempFile.is_open()) {
         std::cerr << "Unable to open temporary file: " << tempFilename << std::endl;
@@ -242,7 +242,7 @@ void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::stri
                     float tsdfValue = tsdfMatrix.at<cv::Vec<short, 2>>(k * dy + j, i)[0] * DIVSHORTMAX;
                     short weight = tsdfMatrix.at<cv::Vec<short, 2>>(k * dy + j, i)[1];
 
-                    if (abs(tsdfValue) < 1.0f - 1e-4 && tsdfValue != 0){
+                    if (abs(tsdfValue) < 0.9999f * DIVSHORTMAX * SHORTMAX && tsdfValue != 0){
                         // Normalize the TSDF value to a 0-1 range
                         float normalized_tsdf = (tsdfValue - (-1.0f)) / (1.0f - (-1.0f));
 
@@ -273,7 +273,7 @@ void savePointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::stri
 }
 
 // multi threads version
-void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
+void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMatrix, const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
     // Keep track of the number of vertices
     int numVertices = 0;
     int dx = volume_size[0];
@@ -291,7 +291,7 @@ void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMa
         int zStart = i * zStep;
         int zEnd = (i + 1) * zStep;
         if (i == numThreads - 1) zEnd = dz;
-        threads[i] = std::thread(saveColorPointCloudProcessVolumeSlice, std::ref(colorMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, std::ref(numVerticesVec[i]), voxel_scale, showFaces);
+        threads[i] = std::thread(saveColorPointCloudProcessVolumeSlice, std::ref(colorMatrix), std::ref(tsdfMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, std::ref(numVerticesVec[i]), voxel_scale, showFaces);
     }
 
     for (auto& thread : threads) {
@@ -345,7 +345,7 @@ void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMa
     plyFile.close();
 }
 
-void saveColorPointCloudProcessVolumeSlice(const cv::Mat& colorMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, bool showFaces) {
+void saveColorPointCloudProcessVolumeSlice(const cv::Mat& colorMatrix, const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, bool showFaces) {
     std::ofstream tempFile(tempFilename);
     if (!tempFile.is_open()) {
         std::cerr << "Unable to open temporary file: " << tempFilename << std::endl;
@@ -377,31 +377,35 @@ void saveColorPointCloudProcessVolumeSlice(const cv::Mat& colorMatrix, const std
                 }
                 else
                 {
-                    // Retrieve the color value
-                    cv::Vec3b colorValue = colorMatrix.at<cv::Vec3b>(k * dy + j, i);
+                    float tsdfValue = tsdfMatrix.at<cv::Vec<short, 2>>(k * dy + j, i)[0] * DIVSHORTMAX;
 
-                    if (colorValue == cv::Vec3b{0, 0, 0}) {
-                        // Skip invalid color values
-                        continue;
+                    if (abs(tsdfValue) < 0.2f * DIVSHORTMAX * SHORTMAX && tsdfValue != 0){
+                        // Retrieve the color value
+                        cv::Vec3b colorValue = colorMatrix.at<cv::Vec3b>(k * dy + j, i);
+
+                        if (colorValue == cv::Vec3b{0, 0, 0}) {
+                            // Skip invalid color values
+                            continue;
+                        }
+
+                        Point point;
+                        point.x = i * voxel_scale;
+                        point.y = j * voxel_scale;
+                        point.z = k * voxel_scale;
+
+                        point.r = colorValue[2];
+                        point.g = colorValue[1];
+                        point.b = colorValue[0];
+    
+                        // Write the point
+                        tempFile << point.x << " " << point.y << " " << point.z << " "
+                                << static_cast<int>(point.r) << " "
+                                << static_cast<int>(point.g) << " "
+                                << static_cast<int>(point.b) << "\n";
+
+                        // Increment the vertex count
+                        ++numVertices;
                     }
-
-                    Point point;
-                    point.x = i * voxel_scale;
-                    point.y = j * voxel_scale;
-                    point.z = k * voxel_scale;
-
-                    point.r = colorValue[2];
-                    point.g = colorValue[1];
-                    point.b = colorValue[0];
- 
-                    // Write the point
-                    tempFile << point.x << " " << point.y << " " << point.z << " "
-                            << static_cast<int>(point.r) << " "
-                            << static_cast<int>(point.g) << " "
-                            << static_cast<int>(point.b) << "\n";
-
-                    // Increment the vertex count
-                    ++numVertices;
                 }
             }
         }
