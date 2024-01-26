@@ -25,8 +25,8 @@
 #include <thread>
 #include <functional>
 
-#define USE_CPU_MULTI_THREADING
-//#define USE_CLASSES
+// #define PRINT_MODULE_COMP_TIME
+// #define USE_CLASSES
 
 #define DIVSHORTMAX 0.0000305185f 
 #define SHORTMAX    32767               // SHRT_MAX;

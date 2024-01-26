@@ -28,7 +28,9 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 {
     CPU::FrameData frame_data(configuration.num_levels);
     
+    #ifdef PRINT_MODULE_COMP_TIME
     auto start = std::chrono::high_resolution_clock::now();
+    #endif
 
     GPU::FrameData frame_data_GPU = GPU::surface_measurement(
         depth_map,
@@ -39,13 +41,18 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         configuration.bfilter_color_sigma,
         configuration.bfilter_spatial_sigma);
 
+    #ifdef PRINT_MODULE_COMP_TIME
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
     std::cout << "-- Surface measurement:\t" << elapsed.count() << " ms" << std::endl;
+    #endif
 
     frame_data_GPU.color_pyramid[0].upload(color_map);
 
+    #ifdef PRINT_MODULE_COMP_TIME
     start = std::chrono::high_resolution_clock::now();
+    #endif
+
     bool icp_success { true };
     if (frame_id > 0) { // Do not perform ICP for the very first frame
         icp_success = GPU::pose_estimation(
@@ -58,15 +65,21 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
             configuration.angle_threshold,
             configuration.icp_iterations);
     }
+
+    #ifdef PRINT_MODULE_COMP_TIME
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
     std::cout << "-- Pose estimation:\t" << elapsed.count() << " ms" << std::endl;
+    #endif
 
     if (!icp_success)
         return false;
     poses.push_back(current_pose);
 
+    #ifdef PRINT_MODULE_COMP_TIME
     start = std::chrono::high_resolution_clock::now();
+    #endif
+
     GPU::surface_reconstruction(
         frame_data_GPU.depth_pyramid[0],
         frame_data_GPU.color_pyramid[0],
@@ -74,11 +87,15 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         camera_parameters,
         configuration.truncation_distance,
         current_pose.inverse());
+
+    #ifdef PRINT_MODULE_COMP_TIME
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
     std::cout << "-- Surface reconstruct: " << elapsed.count() << " ms" << std::endl;
-
+    
     start = std::chrono::high_resolution_clock::now();
+    #endif
+
     for (int level = 0; level < configuration.num_levels; ++level){
         GPU::surface_prediction(
             volume_data_GPU,
@@ -89,10 +106,13 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
             configuration.truncation_distance,
             current_pose);
     }
+
+    #ifdef PRINT_MODULE_COMP_TIME
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
     std::cout << "-- Surface prediction:\t" << elapsed.count() << " ms" << std::endl;
-
+    #endif
+    
     model_data_GPU.color_pyramid[0].download(last_model_color_frame);
     model_data_GPU.normal_pyramid[0].download(last_model_normal_frame);
 

@@ -80,6 +80,9 @@ namespace GPU{
                         model_color.z = static_cast<uchar>(
                                 (current_weight * model_color.z + add_weight * image_color.z) /
                                 (current_weight + add_weight));
+                        // model_color.x = image_color.x;
+                        // model_color.y = image_color.y;
+                        // model_color.z = image_color.z;
                     }
                 }
             }
@@ -94,13 +97,6 @@ namespace GPU{
         const dim3 threads(32, 32);
         const dim3 blocks((volume.volume_size.x + threads.x - 1) / threads.x,
                             (volume.volume_size.y + threads.y - 1) / threads.y);
-
-        // cv::Mat depth_image_CPU, color_image_CPU;
-        // depth_image.download(depth_image_CPU);
-        // color_image.download(color_image_CPU);
-        // cv::imshow("depth_image", depth_image_CPU);
-        // cv::imshow("color_image", color_image_CPU);
-        // cv::waitKey(0);
 
         CUDA::update_tsdf_kernel<<<blocks, threads>>>(depth_image, color_image,
                 volume.tsdf_volume, volume.color_volume,

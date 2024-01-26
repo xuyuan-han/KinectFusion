@@ -5,11 +5,7 @@
 int main(int argc, char **argv)
 {
 
-#ifdef USE_CPU_MULTI_THREADING
-    std::cout << "Using cpu multi-threading" << std::endl;
-#else
-    std::cout << "Not using cpu multi-threading" << std::endl;
-#endif
+    std::cout << "Using GPU CUDA" << std::endl;
 
     CameraParameters cameraparameters;
     GlobalConfiguration configuration;
@@ -46,14 +42,20 @@ int main(int argc, char **argv)
         auto end = std::chrono::high_resolution_clock::now(); // end time measurement
         std::chrono::duration<double, std::milli> elapsed = end - start; // elapsed time in milliseconds
 
+        #ifdef PRINT_MODULE_COMP_TIME
+        std::cout << std::endl;
+        #endif
+
         if (!success){
-            std::cout << "\n>>> Frame " << sensor.getCurrentFrameCnt() << " could not be processed" << std::endl;
+            std::cout << ">>> Frame " << sensor.getCurrentFrameCnt() << " could not be processed" << std::endl;
             // break;
         }else{
-            std::cout << "\n>>> Frame " << sensor.getCurrentFrameCnt() << " processed: " << elapsed.count() << " ms" << std::endl;
+            std::cout << ">>> Frame " << sensor.getCurrentFrameCnt() << " processed: " << elapsed.count() << " ms" << std::endl;
         }
         
+        #ifdef PRINT_MODULE_COMP_TIME
         std::cout << "-----------------------------------" << std::endl;
+        #endif
 
         cv::imshow("InputRGB", sensor.getColorRGBX());
         cv::moveWindow("InputRGB", 0, 0);
