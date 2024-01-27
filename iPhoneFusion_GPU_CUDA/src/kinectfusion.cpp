@@ -4,30 +4,55 @@ Pipeline::Pipeline(const CameraParameters _camera_parameters,
                     const GlobalConfiguration _configuration) :
         camera_parameters(_camera_parameters),
         configuration(_configuration),
-        volumedata(_configuration.volume_size, _configuration.voxel_scale),
-        model_data(_configuration.num_levels, _camera_parameters),
+        volume_data_GPU(_configuration.volume_size_int3, _configuration.voxel_scale),
+        model_data_GPU(_configuration.num_levels, _camera_parameters),
         current_pose{},
         poses{},
         frame_id{0}
 {
     current_pose.setIdentity();
-    current_pose(0, 3) = _configuration.volume_size[0] / 2 * _configuration.voxel_scale;
-    current_pose(1, 3) = 0;
-    current_pose(2, 3) = _configuration.volume_size[2] / 2 * _configuration.voxel_scale - _configuration.init_depth;
+    current_pose(0, 3) = _configuration.volume_size_int3.x / 2 * _configuration.voxel_scale - _configuration.init_depth_x;
+    current_pose(1, 3) = _configuration.volume_size_int3.y / 2 * _configuration.voxel_scale - _configuration.init_depth_y;
+    current_pose(2, 3) = _configuration.volume_size_int3.z / 2 * _configuration.voxel_scale - _configuration.init_depth_z;
 
-    float beta = -40.0f; // rotate around x axis by -45 degrees
+    float alpha = _configuration.init_alpha;
+    float beta = _configuration.init_beta;
+    float gamma = _configuration.init_gamma;
+
+    alpha = alpha / 180.0f * M_PI;
     beta = beta / 180.0f * M_PI;
-    Eigen::Matrix3f rotation_matrix;
-    rotation_matrix << 1, 0, 0,
-                       0, cosf(beta), -sinf(beta),
-                       0, sinf(beta), cosf(beta);
+    gamma = gamma / 180.0f * M_PI;
+
+    Eigen::Matrix3f rotation_matrix_z;
+    rotation_matrix_z << cosf(alpha), -sinf(alpha), 0,
+                        sinf(alpha), cosf(alpha), 0,
+                        0, 0, 1;
+
+    Eigen::Matrix3f rotation_matrix_y;
+    rotation_matrix_y << cosf(beta), 0, sinf(beta),
+                        0, 1, 0,
+                        -sinf(beta), 0, cosf(beta);
+
+    Eigen::Matrix3f rotation_matrix_x;
+    rotation_matrix_x << 1, 0, 0,
+                        0, cosf(gamma), -sinf(gamma),
+                        0, sinf(gamma), cosf(gamma);
+
+    Eigen::Matrix3f rotation_matrix = rotation_matrix_z * rotation_matrix_y * rotation_matrix_x;
+
     current_pose.block(0, 0, 3, 3) = rotation_matrix;
 }
 
-bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map)
+bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map, CameraParameters _camera_parameters)
 {
+    camera_parameters = _camera_parameters;
+    CPU::FrameData frame_data(configuration.num_levels);
+    
+    #ifdef PRINT_MODULE_COMP_TIME
     auto start = std::chrono::high_resolution_clock::now();
-    FrameData frame_data = surface_measurement(
+    #endif
+
+    GPU::FrameData frame_data_GPU = GPU::surface_measurement(
         depth_map,
         camera_parameters,
         configuration.num_levels,
@@ -35,71 +60,81 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         configuration.bfilter_kernel_size,
         configuration.bfilter_color_sigma,
         configuration.bfilter_spatial_sigma);
-    frame_data.color_pyramid[0] = color_map;
+
+    #ifdef PRINT_MODULE_COMP_TIME
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
     std::cout << "-- Surface measurement:\t" << elapsed.count() << " ms" << std::endl;
+    #endif
 
+    frame_data_GPU.color_pyramid[0].upload(color_map);
+
+    #ifdef PRINT_MODULE_COMP_TIME
     start = std::chrono::high_resolution_clock::now();
+    #endif
+
     bool icp_success { true };
     if (frame_id > 0) { // Do not perform ICP for the very first frame
-        icp_success = pose_estimation(
+        icp_success = GPU::pose_estimation(
             current_pose,
-            frame_data,
-            model_data,
+            frame_data_GPU,
+            model_data_GPU,
             camera_parameters,
             configuration.num_levels,
             configuration.distance_threshold,
             configuration.angle_threshold,
             configuration.icp_iterations);
     }
+
+    #ifdef PRINT_MODULE_COMP_TIME
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
     std::cout << "-- Pose estimation:\t" << elapsed.count() << " ms" << std::endl;
+    #endif
 
     if (!icp_success)
         return false;
     poses.push_back(current_pose);
 
+    #ifdef PRINT_MODULE_COMP_TIME
     start = std::chrono::high_resolution_clock::now();
-#ifdef USE_CPU_MULTI_THREADING
-    Surface_Reconstruction::integrate_multi_threads(
-        frame_data.depth_pyramid[0],
-        frame_data.color_pyramid[0],
-        &volumedata,
+    #endif
+
+    GPU::surface_reconstruction(
+        frame_data_GPU.depth_pyramid[0],
+        frame_data_GPU.color_pyramid[0],
+        volume_data_GPU,
         camera_parameters,
         configuration.truncation_distance,
-        current_pose);
-#else
-    Surface_Reconstruction::integrate(
-        frame_data.depth_pyramid[0],
-        frame_data.color_pyramid[0],
-        &volumedata,
-        camera_parameters,
-        configuration.truncation_distance,
-        current_pose);
-#endif
+        current_pose.inverse());
+
+    #ifdef PRINT_MODULE_COMP_TIME
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
     std::cout << "-- Surface reconstruct: " << elapsed.count() << " ms" << std::endl;
-
+    
     start = std::chrono::high_resolution_clock::now();
+    #endif
+
     for (int level = 0; level < configuration.num_levels; ++level){
-        surface_prediction(
-            volumedata,
-            model_data.vertex_pyramid[level],
-            model_data.normal_pyramid[level],
-            model_data.color_pyramid[level],
+        GPU::surface_prediction(
+            volume_data_GPU,
+            model_data_GPU.vertex_pyramid[level],
+            model_data_GPU.normal_pyramid[level],
+            model_data_GPU.color_pyramid[level],
             camera_parameters.level(level),
             configuration.truncation_distance,
             current_pose);
     }
+
+    #ifdef PRINT_MODULE_COMP_TIME
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
     std::cout << "-- Surface prediction:\t" << elapsed.count() << " ms" << std::endl;
-
-    last_model_color_frame = model_data.color_pyramid[0];
-    last_model_normal_frame = model_data.normal_pyramid[0];
+    #endif
+    
+    model_data_GPU.color_pyramid[0].download(last_model_color_frame);
+    model_data_GPU.normal_pyramid[0].download(last_model_normal_frame);
 
     ++frame_id;
     return true;
@@ -117,29 +152,27 @@ cv::Mat Pipeline::get_last_model_color_frame() const
     return last_model_color_frame;
 }
 
-cv::Mat Pipeline::get_last_model_normal_frame() const
-{
-    return last_model_normal_frame;
-}
-
 cv::Mat Pipeline::get_last_model_normal_frame_in_camera_coordinates() const
 {
     return rotate_map_multi_threads(last_model_normal_frame, current_pose.block(0, 0, 3, 3).inverse());
 }
 
 void Pipeline::save_tsdf_color_volume_point_cloud() const
-{
-    createAndSaveTSDFPointCloudVolumeData_multi_threads(volumedata.tsdf_volume, poses, "TSDF_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, configuration.truncation_distance, true);
-    createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, volumedata.tsdf_volume, poses, "Color_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+{   
+    cv::Mat tsdf_volume, color_volume;
+    volume_data_GPU.tsdf_volume.download(tsdf_volume);
+    volume_data_GPU.color_volume.download(color_volume);
+    createAndSaveTSDFPointCloudVolumeData_multi_threads(tsdf_volume, poses, "TSDF_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, configuration.truncation_distance, true);
+    createAndSaveColorPointCloudVolumeData_multi_threads(color_volume, tsdf_volume, poses, "Color_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, true);
 }
 
 // multi threads version
-void createAndSaveTSDFPointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, float truncation_distance, bool showFaces) {
+void createAndSaveTSDFPointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, int3 volume_size_int3, float voxel_scale, float truncation_distance, bool showFaces) {
     // Keep track of the number of vertices
     int numVertices = 0;
-    int dx = volume_size[0];
-    int dy = volume_size[1];
-    int dz = volume_size[2];
+    int dx = volume_size_int3.x;
+    int dy = volume_size_int3.y;
+    int dz = volume_size_int3.z;
 
     int numThreads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(numThreads);
@@ -217,7 +250,7 @@ void saveTSDFPointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::
     for (int i = 0; i < dx; ++i) {
         for (int j = 0; j < dy; ++j) {
             for (int k = zStart; k < zEnd; ++k) {
-                if ( (i==0 || j==0 || k==0 || i==dx-1 || j==dy-1 || k==dz-1) && showFaces && (i%4==3 && j%4==3 && k%4==3)){
+                if ( (i==0 || j==0 || k==0 || i==dx-1 || j==dy-1 || k==dz-1) && showFaces && (i%50==49 && j%50==49 && k%50==49)){
                     Point point;
                     point.x = i * voxel_scale;
                     point.y = j * voxel_scale;
@@ -274,12 +307,12 @@ void saveTSDFPointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::
 }
 
 // multi threads version
-void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMatrix, const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
+void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMatrix, const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, int3 volume_size_int3, float voxel_scale, bool showFaces) {
     // Keep track of the number of vertices
     int numVertices = 0;
-    int dx = volume_size[0];
-    int dy = volume_size[1];
-    int dz = volume_size[2];
+    int dx = volume_size_int3.x;
+    int dy = volume_size_int3.y;
+    int dz = volume_size_int3.z;
 
     int numThreads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(numThreads);
@@ -357,7 +390,7 @@ void saveColorPointCloudProcessVolumeSlice(const cv::Mat& colorMatrix, const cv:
     for (int i = 0; i < dx; ++i) {
         for (int j = 0; j < dy; ++j) {
             for (int k = zStart; k < zEnd; ++k) {
-                if ( (i==0 || j==0 || k==0 || i==dx-1 || j==dy-1 || k==dz-1) && showFaces && (i%4==3 && j%4==3 && k%4==3)){
+                if ( (i==0 || j==0 || k==0 || i==dx-1 || j==dy-1 || k==dz-1) && showFaces && (i%50==49 && j%50==49 && k%50==49)){
                     Point point;
                     point.x = i * voxel_scale;
                     point.y = j * voxel_scale;
