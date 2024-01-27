@@ -11,9 +11,9 @@ Pipeline::Pipeline(const CameraParameters _camera_parameters,
         frame_id{0}
 {
     current_pose.setIdentity();
-    current_pose(0, 3) = _configuration.volume_size[0] / 2 * _configuration.voxel_scale;
+    current_pose(0, 3) = _configuration.volume_size_int3.x / 2 * _configuration.voxel_scale;
     current_pose(1, 3) = 0;
-    current_pose(2, 3) = _configuration.volume_size[2] / 2 * _configuration.voxel_scale - _configuration.init_depth;
+    current_pose(2, 3) = _configuration.volume_size_int3.z / 2 * _configuration.voxel_scale - _configuration.init_depth;
 
     float beta = -40.0f; // rotate around x axis by -45 degrees
     beta = beta / 180.0f * M_PI;
@@ -142,17 +142,17 @@ void Pipeline::save_tsdf_color_volume_point_cloud() const
     cv::Mat tsdf_volume, color_volume;
     volume_data_GPU.tsdf_volume.download(tsdf_volume);
     volume_data_GPU.color_volume.download(color_volume);
-    createAndSaveTSDFPointCloudVolumeData_multi_threads(tsdf_volume, poses, "TSDF_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, configuration.truncation_distance, true);
-    createAndSaveColorPointCloudVolumeData_multi_threads(color_volume, tsdf_volume, poses, "Color_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+    createAndSaveTSDFPointCloudVolumeData_multi_threads(tsdf_volume, poses, "TSDF_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, configuration.truncation_distance, true);
+    createAndSaveColorPointCloudVolumeData_multi_threads(color_volume, tsdf_volume, poses, "Color_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, true);
 }
 
 // multi threads version
-void createAndSaveTSDFPointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, float truncation_distance, bool showFaces) {
+void createAndSaveTSDFPointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, int3 volume_size_int3, float voxel_scale, float truncation_distance, bool showFaces) {
     // Keep track of the number of vertices
     int numVertices = 0;
-    int dx = volume_size[0];
-    int dy = volume_size[1];
-    int dz = volume_size[2];
+    int dx = volume_size_int3.x;
+    int dy = volume_size_int3.y;
+    int dz = volume_size_int3.z;
 
     int numThreads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(numThreads);
@@ -286,12 +286,12 @@ void saveTSDFPointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::
 }
 
 // multi threads version
-void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMatrix, const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
+void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMatrix, const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, int3 volume_size_int3, float voxel_scale, bool showFaces) {
     // Keep track of the number of vertices
     int numVertices = 0;
-    int dx = volume_size[0];
-    int dy = volume_size[1];
-    int dz = volume_size[2];
+    int dx = volume_size_int3.x;
+    int dy = volume_size_int3.y;
+    int dz = volume_size_int3.z;
 
     int numThreads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(numThreads);

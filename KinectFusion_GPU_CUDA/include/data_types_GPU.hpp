@@ -43,8 +43,7 @@ struct GlobalConfiguration {
 	// storage you have available. Dimensions are (x, y, z).
 	// Eigen::Vector3i volume_size { Eigen::Vector3i(512, 512, 512) }; voxel_scale = 2 mm
 	// Eigen::Vector3i volume_size { Eigen::Vector3i(800, 400, 900) }; voxel_scale = 4 mm
-	Eigen::Vector3i volume_size { Eigen::Vector3i(700, 400, 800) }; // voxel_scale = 5 mm
-
+	// Eigen::Vector3i volume_size { Eigen::Vector3i(700, 400, 800) }; // voxel_scale = 5 mm
     int3 volume_size_int3 { make_int3(700, 400, 800) };
 
 	// The amount of mm one single voxel will represent in each dimension. Controls the resolution of the volume.
