@@ -163,11 +163,12 @@ void createAndSaveTSDFPointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatr
         numVertices += nv;
     }
     
-    std::vector<std::string> camera_pose_tempFilenames(poses.size());
+    std::vector<std::string> camera_pose_tempFilenames;
     for (int i = 0; i < poses.size();) {
         // save the camera pose in the .ply file
-        camera_pose_tempFilenames[i] = "camera_pose_tempFile_" + std::to_string(i) + ".ply";
-        numVertices = save_camera_pose_point_cloud(poses[i], numVertices, camera_pose_tempFilenames[i]);
+        std::string camera_pose_tempFilename = "camera_pose_tempFile_" + std::to_string(i) + ".ply";
+        camera_pose_tempFilenames.push_back(camera_pose_tempFilename);
+        numVertices = save_camera_pose_point_cloud(poses[i], numVertices, camera_pose_tempFilename);
         i += 30; // save every 30 frames
     }
 
@@ -303,11 +304,12 @@ void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMa
         numVertices += nv;
     }
 
-    std::vector<std::string> camera_pose_tempFilenames(poses.size());
+    std::vector<std::string> camera_pose_tempFilenames;
     for (int i = 0; i < poses.size();) {
         // save the camera pose in the .ply file
-        camera_pose_tempFilenames[i] = "camera_pose_tempFile_" + std::to_string(i) + ".ply";
-        numVertices = save_camera_pose_point_cloud(poses[i], numVertices, camera_pose_tempFilenames[i]);
+        std::string camera_pose_tempFilename = "camera_pose_tempFile_" + std::to_string(i) + ".ply";
+        camera_pose_tempFilenames.push_back(camera_pose_tempFilename);
+        numVertices = save_camera_pose_point_cloud(poses[i], numVertices, camera_pose_tempFilename);
         i += 30; // save every 30 frames
     }
 
