@@ -8,7 +8,10 @@
 
 int main(int argc, char **argv)
 {
-#ifndef HAS_RECORD3D
+#ifdef HAS_RECORD3D
+    iPhoneFusion iPhoneFusion{};
+    iPhoneFusion.Run();
+#else
     std::cout << "Using GPU CUDA" << std::endl;
 
     CameraParameters cameraparameters;
@@ -36,6 +39,10 @@ int main(int argc, char **argv)
     unsigned int maxFrameCnt = MAXFRAMECNT;
     #endif
 
+    double last_time = cv::getTickCount();
+    int frame_count_FPS = 0;
+    double fps = 0.0;
+
     Pipeline pipeline {cameraparameters, configuration};
     while(sensor.processNextFrame()){
         auto start = std::chrono::high_resolution_clock::now(); // start time measurement
@@ -60,19 +67,37 @@ int main(int argc, char **argv)
         std::cout << "-----------------------------------" << std::endl;
         #endif
 
+        frame_count_FPS++;
+        double current_time = cv::getTickCount();
+        double time_diff = (current_time - last_time) / cv::getTickFrequency();
+
+        // update FPS every second
+        if (time_diff >= 1.0) {
+            fps = frame_count_FPS / time_diff;
+            frame_count_FPS = 0;
+            last_time = current_time;
+        }
+    
+        cv::Mat image_last_model_color_frame = pipeline.get_last_model_color_frame();
+        std::string fps_text = "FPS: " + std::to_string(int(fps));
+        cv::putText(image_last_model_color_frame, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 2);
+
         cv::imshow("InputRGB", sensor.getColorRGBX());
         cv::moveWindow("InputRGB", 0, 0);
 
         cv::imshow("InputDepth", sensor.getDepth()/5000.f);
         cv::moveWindow("InputDepth", sensor.getColorRGBX().cols, 0);
         
-        cv::imshow("SurfacePrediction Output: Color", pipeline.get_last_model_color_frame());
+        cv::imshow("SurfacePrediction Output: Color", image_last_model_color_frame);
         cv::moveWindow("SurfacePrediction Output: Color", 0, sensor.getColorRGBX().rows + 40);
 
         cv::imshow("SurfacePrediction Output: Normal (in camera frame)", pipeline.get_last_model_normal_frame_in_camera_coordinates());
         cv::moveWindow("SurfacePrediction Output: Normal (in camera frame)", sensor.getColorRGBX().cols, sensor.getColorRGBX().rows + 40);
 
-        cv::waitKey(1);
+        int key = cv::waitKey(1);
+        if (key != -1) {
+            break;
+        }
 
         #ifdef MAXFRAMECNT
         if (sensor.getCurrentFrameCnt() == (maxFrameCnt-1)) {
@@ -89,10 +114,5 @@ int main(int argc, char **argv)
     std::chrono::duration<double, std::milli> elapsed_save = end_save - start; // elapsed time in milliseconds
     std::cout << "-- Save point cloud time: " << elapsed_save.count() << " ms\n";
     std::cout << ">>> Point cloud generation done" << std::endl;
-
-    cv::waitKey(1);
-#else
-    iPhoneFusion iPhoneFusion{};
-    iPhoneFusion.Run();
 #endif
 }

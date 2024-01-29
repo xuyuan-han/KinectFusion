@@ -81,6 +81,10 @@ public:
             Pipeline pipeline {cameraparameters, configuration};
 
             size_t frameCnt = 0;
+            double last_time = cv::getTickCount();
+            int frame_count_FPS = 0;
+            double fps = 0.0;
+
             while ( true )
             // for ( ; frameCnt < 30 * 15; frameCnt++)
             {
@@ -142,13 +146,28 @@ public:
                 std::cout << "-----------------------------------" << std::endl;
                 #endif
 
+                frame_count_FPS++;
+                double current_time = cv::getTickCount();
+                double time_diff = (current_time - last_time) / cv::getTickFrequency();
+
+                // update FPS every second
+                if (time_diff >= 1.0) {
+                    fps = frame_count_FPS / time_diff;
+                    frame_count_FPS = 0;
+                    last_time = current_time;
+                }
+            
+                cv::Mat image_last_model_color_frame = pipeline.get_last_model_color_frame();
+                std::string fps_text = "FPS: " + std::to_string(int(fps));
+                cv::putText(image_last_model_color_frame, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 2);
+
                 cv::imshow("InputRGB", rgb);
                 cv::moveWindow("InputRGB", 0, 0);
 
                 cv::imshow("InputDepth", depth/5000.f);
                 cv::moveWindow("InputDepth", rgb.cols, 0);
                 
-                cv::imshow("SurfacePrediction Output: Color", pipeline.get_last_model_color_frame());
+                cv::imshow("SurfacePrediction Output: Color", image_last_model_color_frame); // pipeline.get_last_model_color_frame() with FPS
                 cv::moveWindow("SurfacePrediction Output: Color", 0, rgb.rows + 40);
 
                 cv::imshow("SurfacePrediction Output: Normal (in camera frame)", pipeline.get_last_model_normal_frame_in_camera_coordinates());
