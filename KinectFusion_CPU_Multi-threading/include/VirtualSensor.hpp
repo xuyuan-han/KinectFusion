@@ -24,7 +24,9 @@ public:
 		// Read filename lists
 		if (!readFileList(datasetDir + "depth.txt", m_filenameDepthImages, m_depthImagesTimeStamps)) return false;
 		if (!readFileList(datasetDir + "rgb.txt", m_filenameColorImages, m_colorImagesTimeStamps)) return false;
-
+		#ifdef USE_CLASSES
+		if (!readFileList(datasetDir + "segmentation.txt", m_filenameSegmentationImages, m_segmentationImagesTimeStamps)) return false;
+		#endif
 		
 		
 		if (m_filenameDepthImages.size() != m_filenameColorImages.size()) return false;
@@ -60,7 +62,11 @@ public:
 		std::cout << "ProcessNextFrame [" << m_currentIdx << " | " << m_filenameColorImages.size() << "]" << std::endl;
 
 		rgbImage = cv::imread(m_baseDir + m_filenameColorImages[m_currentIdx]);
-       
+		// Create empty segmentation image just in case USE_CLASSES is not defined
+		#ifdef USE_CLASSES
+		segmentationImage = cv::imread(m_baseDir + m_filenameSegmentationImages[m_currentIdx],cv::IMREAD_UNCHANGED);
+		// If USE_CLASSES is not defined, segmentationImage is empty
+		#endif
         // Depth images are scaled by 5000
         dImage = cv::imread(m_baseDir + m_filenameDepthImages[m_currentIdx], cv::IMREAD_UNCHANGED);
 
@@ -117,6 +123,11 @@ public:
 		return m_depthImageHeight;
 	}
 
+	// get current segmentation data
+	cv::Mat getSegmentation() {
+		return segmentationImage;
+	}
+
 	// get current trajectory transformation
 	
 
@@ -155,6 +166,7 @@ private:
 	// frame data
 	cv::Mat rgbImage;
 	cv::Mat_<float> dImage;
+	cv::Mat_<uchar> segmentationImage;
 
 
 	// color camera info
@@ -177,6 +189,10 @@ private:
 	// filenamelist color
 	std::vector<std::string> m_filenameColorImages;
 	std::vector<double> m_colorImagesTimeStamps;
+	// filenamelist segmentation
+	std::vector<std::string> m_filenameSegmentationImages;
+	std::vector<double> m_segmentationImagesTimeStamps;
+
 
 	// trajectory
 	std::vector<Eigen::Matrix4f> m_trajectory;

@@ -24,7 +24,7 @@ Pipeline::Pipeline(const CameraParameters _camera_parameters,
     current_pose.block(0, 0, 3, 3) = rotation_matrix;
 }
 
-bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map)
+bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map, const cv::Mat_<uchar>& segmentation_map)
 {
     auto start = std::chrono::high_resolution_clock::now();
     FrameData frame_data = surface_measurement(
@@ -66,6 +66,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     Surface_Reconstruction::integrate_multi_threads(
         frame_data.depth_pyramid[0],
         frame_data.color_pyramid[0],
+        segmentation_map,
         &volumedata,
         camera_parameters,
         configuration.truncation_distance,
@@ -131,6 +132,9 @@ void Pipeline::save_tsdf_color_volume_point_cloud() const
 {
     createAndSaveTSDFPointCloudVolumeData_multi_threads(volumedata.tsdf_volume, poses, "TSDF_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, configuration.truncation_distance, true);
     createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, volumedata.tsdf_volume, poses, "Color_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+    #ifdef USE_CLASSES
+    createAndSaveClassPointCloudVolumeData_multi_threads(volumedata.class_volume, volumedata.tsdf_volume, poses, "Class_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+    #endif
 }
 
 // multi threads version
@@ -517,4 +521,186 @@ void rotate_map_MatSlice(cv::Mat& mat, const Eigen::Matrix3f& rotation, int star
             pixel = cv::Vec3f(rotatedVec[0], rotatedVec[1], rotatedVec[2]);
         }
     }
+}
+
+void createAndSaveClassPointCloudVolumeData_multi_threads(const cv::Mat& classMatrix, const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
+    // Keep track of the number of vertices
+    int numVertices = 0;
+    int dx = volume_size[0];
+    int dy = volume_size[1];
+    int dz = volume_size[2];
+
+    int numThreads = std::thread::hardware_concurrency();
+    std::vector<std::thread> threads(numThreads);
+    int zStep = dz / numThreads;
+    std::vector<int> numVerticesVec(numThreads, 0);
+    std::vector<std::string> tempFilenames(numThreads);
+
+    for (int i = 0; i < numThreads; ++i) {
+        tempFilenames[i] = "classes_temp_" + std::to_string(i) + ".ply";
+        int zStart = i * zStep;
+        int zEnd = (i + 1) * zStep;
+        if (i == numThreads - 1) zEnd = dz;
+        threads[i] = std::thread(saveClassPointCloudProcessVolumeSlice, std::ref(classMatrix), std::ref(tsdfMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, std::ref(numVerticesVec[i]), voxel_scale, showFaces);
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    for (int nv : numVerticesVec) {
+        numVertices += nv;
+    }
+
+    std::vector<std::string> camera_pose_tempFilenames;
+    for (int i = 0; i < poses.size();) {
+        // save the camera pose in the .ply file
+        std::string camera_pose_tempFilename = "camera_pose_tempFile_" + std::to_string(i) + ".ply";
+        camera_pose_tempFilenames.push_back(camera_pose_tempFilename);
+        numVertices = save_camera_pose_point_cloud(poses[i], numVertices, camera_pose_tempFilename);
+        i += 30; // save every 30 frames
+    }
+
+    std::ofstream plyFile(outputFilename);
+    if (!plyFile.is_open()) {
+        std::cerr << "Unable to open file: " << outputFilename << std::endl;
+        return;
+    }
+
+    plyFile << "ply\nformat ascii 1.0\n";
+    plyFile << "element vertex " << numVertices << "\n";
+    plyFile << "property float x\nproperty float y\nproperty float z\nproperty uchar red\nproperty uchar green\nproperty uchar blue\n";
+    plyFile << "end_header\n";
+
+    for (const auto& tempFilename : tempFilenames) {
+        std::ifstream tempFile(tempFilename);
+        if (tempFile.good()) {
+            plyFile << tempFile.rdbuf();
+            tempFile.close();
+            std::remove(tempFilename.c_str());
+        }
+        else {
+            std::cerr << "Error reading temporary file: " << tempFilename << std::endl;
+        }
+    }
+
+    for (const auto& camera_pose_tempFilename : camera_pose_tempFilenames) {
+        std::ifstream tempFilePyramid(camera_pose_tempFilename);
+        if (tempFilePyramid.good()) {
+            plyFile << tempFilePyramid.rdbuf();
+            tempFilePyramid.close();
+            std::remove(camera_pose_tempFilename.c_str());
+        }
+        else {
+            std::cerr << "Error reading temporary file: " << camera_pose_tempFilename << std::endl;
+        }
+    }
+
+    plyFile.close();
+}
+
+void saveClassPointCloudProcessVolumeSlice(const cv::Mat& classMatrix, const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, bool showFaces) {
+    std::ofstream tempFile(tempFilename);
+    if (!tempFile.is_open()) {
+        std::cerr << "Unable to open temporary file: " << tempFilename << std::endl;
+        return;
+    }
+
+    for (int i = 0; i < dx; ++i) {
+        for (int j = 0; j < dy; ++j) {
+            for (int k = zStart; k < zEnd; ++k) {
+                if ((i == 0 || j == 0 || k == 0 || i == dx - 1 || j == dy - 1 || k == dz - 1) && showFaces && (i % 4 == 3 && j % 4 == 3 && k % 4 == 3)) {
+                    Point point;
+                    point.x = i * voxel_scale;
+                    point.y = j * voxel_scale;
+                    point.z = k * voxel_scale;
+
+                    // show the faces of the volume
+                    point.r = static_cast<unsigned char>(255);
+                    point.g = static_cast<unsigned char>(255);
+                    point.b = static_cast<unsigned char>(255);
+
+                    // Write the point
+                    tempFile << point.x << " " << point.y << " " << point.z << " "
+                        << static_cast<int>(point.r) << " "
+                        << static_cast<int>(point.g) << " "
+                        << static_cast<int>(point.b) << "\n";
+
+                    // Increment the vertex count
+                    ++numVertices;
+                }
+                else
+                {
+                    float tsdfValue = tsdfMatrix.at<cv::Vec<short, 2>>(k * dy + j, i)[0] * DIVSHORTMAX;
+
+                    if (abs(tsdfValue) < 0.2f * DIVSHORTMAX * SHORTMAX && tsdfValue != 0) {
+                        // Retrieve the color value
+                        uchar classValue =  classMatrix.at<uchar>(k * dy + j, i);
+                        cv::Vec3b colorValue = getColorForClass(classValue);
+
+
+                        if (colorValue == cv::Vec3b{ 0, 0, 0 }) {
+                            // Skip invalid color values
+                            continue;
+                        }
+
+                        Point point;
+                        point.x = i * voxel_scale;
+                        point.y = j * voxel_scale;
+                        point.z = k * voxel_scale;
+
+                        point.r = colorValue[2];
+                        point.g = colorValue[1];
+                        point.b = colorValue[0];
+
+                        // Write the point
+                        tempFile << point.x << " " << point.y << " " << point.z << " "
+                            << static_cast<int>(point.r) << " "
+                            << static_cast<int>(point.g) << " "
+                            << static_cast<int>(point.b) << "\n";
+
+                        // Increment the vertex count
+                        ++numVertices;
+                    }
+                }
+            }
+        }
+    }
+    tempFile.close();
+}
+
+
+// Define the color palette
+std::vector<std::vector<int>> ade20k_palette = {
+
+		{120, 120, 120}, {180, 120, 120}, {6, 230, 230}, {80, 50, 50}, {4, 200, 3}, {120, 120, 80}, {140, 140, 140}, {204, 5, 255},
+		{230, 230, 230}, {4, 250, 7}, {224, 5, 255}, {235, 255, 7}, {150, 5, 61}, {120, 120, 70}, {8, 255, 51}, {255, 6, 82},
+		{143, 255, 140}, {204, 255, 4}, {255, 51, 7}, {204, 70, 3}, {0, 102, 200}, {61, 230, 250}, {255, 6, 51}, {11, 102, 255},
+		{255, 7, 71}, {255, 9, 224}, {9, 7, 230}, {220, 220, 220}, {255, 9, 92}, {112, 9, 255}, {8, 255, 214}, {7, 255, 224},
+		{255, 184, 6}, {10, 255, 71}, {255, 41, 10}, {7, 255, 255}, {224, 255, 8}, {102, 8, 255}, {255, 61, 6}, {255, 194, 7},
+		{255, 122, 8}, {0, 255, 20}, {255, 8, 41}, {255, 5, 153}, {6, 51, 255}, {235, 12, 255}, {160, 150, 20}, {0, 163, 255},
+		{140, 140, 140}, {250, 10, 15}, {20, 255, 0}, {31, 255, 0}, {255, 31, 0}, {255, 224, 0}, {153, 255, 0}, {0, 0, 255},
+		{255, 71, 0}, {0, 235, 255}, {0, 173, 255}, {31, 0, 255}, {11, 200, 200}, {255, 82, 0}, {0, 255, 245}, {0, 61, 255},
+		{0, 255, 112}, {0, 255, 133}, {255, 0, 0}, {255, 163, 0}, {255, 102, 0}, {194, 255, 0}, {0, 143, 255}, {51, 255, 0},
+		{0, 82, 255}, {0, 255, 41}, {0, 255, 173}, {10, 0, 255}, {173, 255, 0}, {0, 255, 153}, {255, 92, 0}, {255, 0, 255},
+		{255, 0, 245}, {255, 0, 102}, {255, 173, 0}, {255, 0, 20}, {255, 184, 184}, {0, 31, 255}, {0, 255, 61}, {0, 71, 255},
+		{255, 0, 204}, {0, 255, 194}, {0, 255, 82}, {0, 10, 255}, {0, 112, 255}, {51, 0, 255}, {0, 194, 255}, {0, 122, 255},
+		{0, 255, 163}, {255, 153, 0}, {0, 255, 10}, {255, 112, 0}, {143, 255, 0}, {82, 0, 255}, {163, 255, 0}, {255, 235, 0},
+		{8, 184, 170}, {133, 0, 255}, {0, 255, 92}, {184, 0, 255}, {255, 0, 31}, {0, 184, 255}, {0, 214, 255}, {255, 0, 112},
+		{92, 255, 0}, {0, 224, 255}, {112, 224, 255}, {70, 184, 160}, {163, 0, 255}, {153, 0, 255}, {71, 255, 0}, {255, 0, 163},
+		{255, 204, 0}, {255, 0, 143}, {0, 255, 235}, {133, 255, 0}, {255, 0, 235}, {245, 0, 255}, {255, 0, 122}, {255, 245, 0},
+		{10, 190, 212}, {214, 255, 0}, {0, 204, 255}, {20, 0, 255}, {255, 255, 0}, {0, 153, 255}, {0, 41, 255}, {0, 255, 204},
+		{41, 0, 255}, {41, 255, 0}, {173, 0, 255}, {0, 245, 255}, {71, 0, 255}, {122, 0, 255}, {0, 255, 184}, {0, 92, 255},
+		{184, 255, 0}, {0, 133, 255}, {255, 214, 0}, {25, 194, 194}, {102, 255, 0}, {92, 0, 255}
+
+};
+
+// Function to get the color for a given class index
+cv::Vec3b getColorForClass(uchar classIndex) {
+    int classIndexInt = static_cast<int>(classIndex);
+	if (classIndexInt <= 0 || classIndexInt >= ade20k_palette.size()) {
+		return cv::Vec3b(0, 0, 0);
+	}
+	return cv::Vec3b(ade20k_palette[classIndexInt][0], ade20k_palette[classIndexInt][1], ade20k_palette[classIndexInt][2]);
+
 }

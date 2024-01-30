@@ -13,7 +13,7 @@ public:
 
     ~Pipeline() = default;
 
-    bool process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map);
+    bool process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map, const cv::Mat_<uchar>& segmentation_map);
     std::vector<Eigen::Matrix4f> get_poses() const;
     cv::Mat get_last_model_color_frame() const;
     cv::Mat get_last_model_normal_frame() const;
@@ -45,8 +45,15 @@ void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMa
 
 void saveColorPointCloudProcessVolumeSlice(const cv::Mat& colorMatrix, const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, bool showFaces);
 
+void createAndSaveClassPointCloudVolumeData_multi_threads(const cv::Mat& classMatrix, const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces);
+
+void saveClassPointCloudProcessVolumeSlice(const cv::Mat& classMatrix, const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, bool showFaces);
+
+
 int save_camera_pose_point_cloud(Eigen::Matrix4f current_pose, int numVertices, std::string outputFilename);
 
 cv::Mat rotate_map_multi_threads(const cv::Mat& mat, const Eigen::Matrix3f& rotation);
 
 void rotate_map_MatSlice(cv::Mat& mat, const Eigen::Matrix3f& rotation, int startRow, int endRow);
+
+cv::Vec3b getColorForClass(uchar classIndex);

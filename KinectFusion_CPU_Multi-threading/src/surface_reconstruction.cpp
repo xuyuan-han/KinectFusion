@@ -1,14 +1,12 @@
 #include "surface_reconstruction.hpp"
 
 // multi thread version
-void Surface_Reconstruction::integrate_multi_threads(cv::Mat depth, cv::Mat colorMap, VolumeData* vol, CameraParameters camera_parameters, float trancutionDistance, Eigen::Matrix4f pos) {
+void Surface_Reconstruction::integrate_multi_threads(cv::Mat depth, cv::Mat colorMap, cv::Mat segmentationMap, VolumeData* vol, CameraParameters camera_parameters, float trancutionDistance, Eigen::Matrix4f pos) {
     Eigen::Matrix4f worldToCamera = pos;
     Eigen::Matrix4f cameraToWorld = worldToCamera.inverse();
     Eigen::Matrix3f intrinsics = camera_parameters.getIntrinsicMatrix();
     int width = camera_parameters.image_width;
     int height = camera_parameters.image_height;
-
-    uint* class_map = new uint[width * height];
 
     int numThreads = std::thread::hardware_concurrency();
 
@@ -22,17 +20,16 @@ void Surface_Reconstruction::integrate_multi_threads(cv::Mat depth, cv::Mat colo
         if (i == numThreads - 1) {
             rEnd = vol->tsdf_volume.rows;
         }
-        threads[i] = std::thread(Surface_Reconstruction::reconstructionProcessVolumeSlice, vol, colorMap, depth, class_map, cameraToWorld, intrinsics, width, height, trancutionDistance, rStart, rEnd);
+        threads[i] = std::thread(Surface_Reconstruction::reconstructionProcessVolumeSlice, vol, colorMap, depth, segmentationMap, cameraToWorld, intrinsics, width, height, trancutionDistance, rStart, rEnd);
     }
 
     for (auto& thread : threads) {
         thread.join();
     }
 
-    delete[] class_map;
 }
 
-void Surface_Reconstruction::reconstructionProcessVolumeSlice(VolumeData* vol, cv::Mat colorMap, cv::Mat depth, uint* class_map, Eigen::Matrix4f cameraToWorld, Eigen::Matrix3f intrinsics, int width, int height, float trancutionDistance, int rStart, int rEnd) {
+void Surface_Reconstruction::reconstructionProcessVolumeSlice(VolumeData* vol, cv::Mat colorMap, cv::Mat depth, cv::Mat class_map, Eigen::Matrix4f cameraToWorld, Eigen::Matrix3f intrinsics, int width, int height, float trancutionDistance, int rStart, int rEnd) {
 		for (int r=rStart; r<rEnd; r++) {
 			for (int c=0; c<vol->tsdf_volume.cols; c++) {
 				
@@ -65,7 +62,7 @@ void Surface_Reconstruction::reconstructionProcessVolumeSlice(VolumeData* vol, c
 							int weight = 1;
 							float oldSdf = vol->tsdf_volume.at<cv::Vec<short, 2>>(r, c)[0] * DIVSHORTMAX;
 							int oldWeight = vol->tsdf_volume.at<cv::Vec<short, 2>>(r, c)[1];
-							uint oldClass = vol->class_volume.at<uchar>(r, c);
+							uchar oldClass = vol->class_volume.at<uchar>(r, c);
 
 							float newSdf_float = (oldSdf * oldWeight + truncatedSDF * weight) / (oldWeight + weight);
 							int newWeight = std::min(oldWeight + weight, MAX_WEIGHT);
@@ -94,16 +91,20 @@ void Surface_Reconstruction::reconstructionProcessVolumeSlice(VolumeData* vol, c
 							vol->color_volume.at<cv::Vec3b>(r, c) = color;
 
 							#ifdef USE_CLASSES
-							uint newClass = class_map[pixel[1] * width + pixel[0]];
+							uchar newClass = class_map.at<uchar>(pixel[1], pixel[0]);
 
-							if (newClass != oldClass)
+							if (oldClass == 0 && newClass!=0){
+								vol->class_volume.at<uchar>(r, c) = newClass;
+							}else if (newClass != 0 && sdf <= trancutionDistance / 2 && sdf >= -trancutionDistance / 2 && newClass != oldClass)
 							{
-								//Randomly choose one of the classes with probability proportional to the weight
+									//Randomly choose one of the classes with probability proportional to the weight
 								double r = ((double)rand() / (RAND_MAX)); // Random number between 0 and 1
 								if (r < (double)oldWeight / (oldWeight + weight))
 									newClass = oldClass;
+								vol->class_volume.at<uchar>(r, c) = newClass;
 							}
-							vol->class_volume.at<uchar>(r, c) = newClass;
+							
+							// std::cout << "oldClass: " << oldClass << std::endl;
 							#endif // USE_CLASSES
 						}
 					}
