@@ -100,6 +100,10 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     last_model_color_frame = model_data.color_pyramid[0];
     last_model_normal_frame = model_data.normal_pyramid[0];
+    last_model_vertex_frame = model_data.vertex_pyramid[0];
+    
+   
+    
 
     ++frame_id;
     return true;
@@ -120,6 +124,11 @@ cv::Mat Pipeline::get_last_model_color_frame() const
 cv::Mat Pipeline::get_last_model_normal_frame() const
 {
     return last_model_normal_frame;
+}
+
+cv::Mat Pipeline::get_last_vertex_frame() const
+{
+    return last_model_vertex_frame;
 }
 
 cv::Mat Pipeline::get_last_model_normal_frame_in_camera_coordinates() const
@@ -517,4 +526,34 @@ void rotate_map_MatSlice(cv::Mat& mat, const Eigen::Matrix3f& rotation, int star
             pixel = cv::Vec3f(rotatedVec[0], rotatedVec[1], rotatedVec[2]);
         }
     }
+}
+
+cv::Mat normalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, const cv::Mat& vectex) {
+    const int col = normal.cols;
+    const int row = normal.rows;
+    // Initialize a matrix to store intensity values
+    cv::Mat results(row, col, CV_8U);  
+    cv::Mat norma = normal.clone();
+    cv::Mat vecte = vectex.clone();
+
+    for (int i = 0; i < row; i++) {
+        for (int t = 0; t < col; t++) {
+            cv::Vec3f& vec = vecte.at<cv::Vec3f>(i, t);
+            // light vector calculation
+            cv::Vec3f light = lightPosition - vec;  
+            cv::normalize(light, light);
+
+            cv::Vec3f& nor = norma.at<cv::Vec3f>(i, t);
+
+            // Calculate the dot product between the normal and light vectors
+            float dotProduct = nor.dot(light);
+
+         
+
+            // Assign the dot product as the intensity
+            results.at<uchar>(i, t) = static_cast<uchar>((dotProduct + 1.0) * 0.5 * 255.0);
+        }
+    }
+
+    return results;
 }

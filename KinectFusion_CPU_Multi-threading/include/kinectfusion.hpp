@@ -17,6 +17,7 @@ public:
     std::vector<Eigen::Matrix4f> get_poses() const;
     cv::Mat get_last_model_color_frame() const;
     cv::Mat get_last_model_normal_frame() const;
+    cv::Mat get_last_vertex_frame() const;
     cv::Mat get_last_model_normal_frame_in_camera_coordinates() const;
     void save_tsdf_color_volume_point_cloud() const;
     
@@ -29,6 +30,7 @@ private:
     std::vector<Eigen::Matrix4f> poses;
     cv::Mat last_model_color_frame;
     cv::Mat last_model_normal_frame;
+    cv::Mat last_model_vertex_frame;
     size_t frame_id { 0 };
 };
 
@@ -50,3 +52,6 @@ int save_camera_pose_point_cloud(Eigen::Matrix4f current_pose, int numVertices, 
 cv::Mat rotate_map_multi_threads(const cv::Mat& mat, const Eigen::Matrix3f& rotation);
 
 void rotate_map_MatSlice(cv::Mat& mat, const Eigen::Matrix3f& rotation, int startRow, int endRow);
+
+cv::Mat normalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, const cv::Mat& vectex);
+
