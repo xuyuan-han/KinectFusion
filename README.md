@@ -10,35 +10,20 @@ We will implement KinectFusion using C++ and CUDA (specifically CUDA 11) to meet
 
 Regarding the dataset, we will use the TUM RGB-D Dataset, to validate our reconstruction implementation. Additionally, we aim to reconstruct a room in our apartment in real-time using the previously mentioned iPhone LiDAR data stream. Alternatively, we may use a Kinect v1 sensor if one becomes available through the course.
 
-## OpenCV Installation
+## Getting Started
 
-```Bash
-cd ~/Libs/opencv/3.4.16/build &&
-cmake \
--D CMAKE_BUILD_TYPE=RELEASE \
--D CMAKE_INSTALL_PREFIX=~/Libs/opencv/3.4.16/install \
--D OPENCV_EXTRA_MODULES_PATH=~/Libs/opencv/contrib-3.4.16/modules \
--D WITH_CUDA=ON \
--D BUILD_DOCS=ON \
--D BUILD_EXAMPLES=OFF \
--D BUILD_TESTS=OFF \
--D BUILD_PERF_TESTS=OFF \
-.. &&
-make -j16 &&
-# cd ./doc/ &&
-# make -j16 doxygen &&
-make install &&
-cd ~/Libs/opencv/4.8.0/build &&
-cmake \
--D CMAKE_BUILD_TYPE=RELEASE \
--D CMAKE_INSTALL_PREFIX=~/Libs/opencv/4.8.0/install \
--D OPENCV_EXTRA_MODULES_PATH=~/Libs/opencv/contrib-4.8.0/modules \
--D WITH_CUDA=ON \
--D BUILD_DOCS=ON \
--D BUILD_EXAMPLES=OFF \
--D BUILD_TESTS=OFF \
--D BUILD_PERF_TESTS=OFF \
-.. &&
-make -j16 &&
-make install
+```bash
+.
+├── Data # please download the TUM RGB-D Dataset and put it here
+├── iPhoneFusion_GPU_CUDA
+├── KinectFusion_CPU_Multi-threading
+├── KinectFusion_GPU_CUDA
+└── README.md
 ```
+
+We implement the KinectFusion algorithm in three ways: the CPU version, the GPU version, and the iPhone version.
+The CPU version is implemented using multi-threading to speed up the computation.
+The GPU version is implemented using CUDA to speed up the computation and run the algorithm in real-time.
+The iPhone version is implemented using the iPhone LiDAR sensor with CUDA to reconstruct the room in real-time.
+
+Please refer to the README in each folder for the detailed instructions on how to run the code.
