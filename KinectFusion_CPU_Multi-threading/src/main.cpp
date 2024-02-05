@@ -14,8 +14,7 @@ int main(int argc, char **argv)
     CameraParameters cameraparameters;
     GlobalConfiguration configuration;
 
-    std::string filenameIn = std::string("C:/Users/USER/Desktop/Germany/TUM/Semester1/3DSMC/Excercies/Data/rgbd_dataset_freiburg1_xyz/");
-
+    std::string filenameIn = std::string("../../Data/rgbd_dataset_freiburg1_xyz/");
 
     VirtualSensor sensor;
     // Load video
