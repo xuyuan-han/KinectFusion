@@ -123,7 +123,7 @@ cv::Mat Pipeline::get_last_model_normal_frame() const
 {
     return last_model_normal_frame;
 }
-cv::Mat Pipeline::get_last_vertex_frame() const
+cv::Mat Pipeline::get_last_model_vertex_frame() const
 {
     return last_model_vertex_frame;
 }
