@@ -66,6 +66,10 @@ cd KinectFusion_GPU_CUDA
 touch config.cmake
 echo "set(OpenCV_DIR /path/to/your/opencv)" >> config.cmake # set the path to your OpenCV 4
 echo "set(Eigen3_DIR /path/to/your/eigen)" >> config.cmake # set the path to your Eigen 3
+
+# set your GPU Compute Capability, refer to https://developer.nvidia.com/cuda-gpus
+# for example, if you have a GTX 1080, the compute capability is 6.1. You can set it as follows:
+echo "set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-O3;-std=c++11 -gencode arch=compute_61,code=sm_61 --expt-relaxed-constexpr)" >> config.cmake 
 ```
 
 For example, you can set the path to your OpenCV as follows:
