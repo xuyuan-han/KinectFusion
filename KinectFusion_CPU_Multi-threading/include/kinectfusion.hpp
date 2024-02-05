@@ -17,7 +17,7 @@ public:
     std::vector<Eigen::Matrix4f> get_poses() const;
     cv::Mat get_last_model_color_frame() const;
     cv::Mat get_last_model_normal_frame() const;
-    cv::Mat get_last_vertex_frame() const;
+    cv::Mat get_last_model_vertex_frame() const;
     cv::Mat get_last_model_normal_frame_in_camera_coordinates() const;
     void save_tsdf_color_volume_point_cloud() const;
     
