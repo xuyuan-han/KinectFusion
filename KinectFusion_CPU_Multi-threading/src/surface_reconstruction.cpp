@@ -98,9 +98,9 @@ void Surface_Reconstruction::reconstructionProcessVolumeSlice(VolumeData* vol, c
 							}else if (newClass != 0 && sdf <= trancutionDistance / 2 && sdf >= -trancutionDistance / 2 && newClass != oldClass)
 							{
 									//Randomly choose one of the classes with probability proportional to the weight
-								double r = ((double)rand() / (RAND_MAX)); // Random number between 0 and 1
-								if (r < (double)oldWeight / (oldWeight + weight))
-									newClass = oldClass;
+								//double r = ((double)rand() / (RAND_MAX)); // Random number between 0 and 1
+								//if (r < (double)oldWeight / (oldWeight + weight))
+									//newClass = oldClass;
 								vol->class_volume.at<uchar>(r, c) = newClass;
 							}
 							

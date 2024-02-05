@@ -1,6 +1,6 @@
 #include "kinectfusion.hpp"
 
-// #define MAXFRAMECNT 80 // Process MAXFRAMECNT frames, comment out this line to process all frames
+#define MAXFRAMECNT 300 // Process MAXFRAMECNT frames, comment out this line to process all frames
 
 int main(int argc, char **argv)
 {
@@ -14,7 +14,8 @@ int main(int argc, char **argv)
     CameraParameters cameraparameters;
     GlobalConfiguration configuration;
 
-    std::string filenameIn = std::string("../../Data/rgbd_dataset_freiburg1_xyz/");
+    std::string filenameIn = std::string("C:/Users/USER/Desktop/Germany/TUM/Semester1/3DSMC/Excercies/Data/rgbd_dataset_freiburg1_xyz/");
+
 
     VirtualSensor sensor;
     // Load video
@@ -45,7 +46,7 @@ int main(int argc, char **argv)
 
         auto start = std::chrono::high_resolution_clock::now(); // start time measurement
 
-        bool success=pipeline.process_frame(sensor.getDepth(), sensor.getColorRGBX());
+        bool success=pipeline.process_frame(sensor.getDepth(), sensor.getColorRGBX(), sensor.getSegmentation());
 
         auto end = std::chrono::high_resolution_clock::now(); // end time measurement
         std::chrono::duration<double, std::milli> elapsed = end - start; // elapsed time in milliseconds
@@ -77,9 +78,13 @@ int main(int argc, char **argv)
         cv::imshow("InputRGB", sensor.getColorRGBX());
         cv::moveWindow("InputRGB", 0, 0);
 
+
         cv::imshow("InputDepth", sensor.getDepth()/5000.f);
         cv::moveWindow("InputDepth", sensor.getColorRGBX().cols, 0);
-        
+        #ifdef USE_CLASSES
+        cv::imshow("InputSegmentation", sensor.getSegmentation());
+        cv::moveWindow("InputSegmentation", sensor.getColorRGBX().cols*2, 0);
+        #endif
         cv::imshow("SurfacePrediction Output: Color", image_last_model_color_frame); // pipeline.get_last_model_color_frame() with FPS
         cv::moveWindow("SurfacePrediction Output: Color", 0, sensor.getColorRGBX().rows + 40);
 
