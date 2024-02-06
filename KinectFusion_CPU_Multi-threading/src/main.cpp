@@ -35,7 +35,7 @@ int main(int argc, char **argv)
     #ifdef MAXFRAMECNT
     unsigned int maxFrameCnt = MAXFRAMECNT;
     #endif
-
+    cv::Vec3f light = { 0.0f, 0.0f, 3.0f };
     double last_time = cv::getTickCount();
     int frame_count_FPS = 0;
     double fps = 0.0;
@@ -89,6 +89,8 @@ int main(int argc, char **argv)
 
         cv::imshow("SurfacePrediction Output: Normal (in camera frame)", pipeline.get_last_model_normal_frame_in_camera_coordinates());
         cv::moveWindow("SurfacePrediction Output: Normal (in camera frame)", sensor.getColorRGBX().cols, sensor.getColorRGBX().rows + 40);
+        cv::imshow("normal Mapping", normalMapping(pipeline.get_last_model_normal_frame_in_camera_coordinates(), light, pipeline.get_last_model_vertex_frame()));
+        cv::moveWindow("normal Mapping", sensor.getColorRGBX().cols * 2, sensor.getColorRGBX().rows + 40);
 
         int key = cv::waitKey(1);
         if (key != -1) {
