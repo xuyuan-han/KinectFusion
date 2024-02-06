@@ -158,7 +158,17 @@ cv::Mat Pipeline::get_last_model_normal_frame_in_camera_coordinates() const
 }
 
 void Pipeline::save_tsdf_color_volume_point_cloud() const
-{   
+{
+    std::string path = "../output/";
+    if (!std::filesystem::exists(path)) {
+        try {
+            if (!std::filesystem::create_directories(path)) {
+                std::cerr << "Failed to create output directory: " << path << std::endl;
+            }
+        } catch (const std::filesystem::filesystem_error& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+        }
+    }
     cv::Mat tsdf_volume, color_volume;
     volume_data_GPU.tsdf_volume.download(tsdf_volume);
     volume_data_GPU.color_volume.download(color_volume);

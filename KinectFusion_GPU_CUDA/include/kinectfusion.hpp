@@ -10,7 +10,7 @@
 
 class Pipeline {
 public:
-    Pipeline(const CameraParameters _camera_parameters, const GlobalConfiguration _configuration);
+    Pipeline(const CameraParameters _camera_parameters, const GlobalConfiguration _configuration, const std::string _datasetname);
 
     ~Pipeline() = default;
 
@@ -23,6 +23,7 @@ public:
 private:
     const CameraParameters camera_parameters;
     const GlobalConfiguration configuration;
+    std::string datasetname;
     GPU::VolumeData volume_data_GPU;
     GPU::ModelData model_data_GPU;
     Eigen::Matrix4f current_pose;

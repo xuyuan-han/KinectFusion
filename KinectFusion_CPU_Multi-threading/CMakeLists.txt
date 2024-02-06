@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.6)
 
 project(KinectFusion)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 include(${PROJECT_SOURCE_DIR}/config.cmake)
 

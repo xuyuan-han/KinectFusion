@@ -1,9 +1,11 @@
 #include "kinectfusion.hpp"
 
 Pipeline::Pipeline(const CameraParameters _camera_parameters,
-                    const GlobalConfiguration _configuration) :
+                    const GlobalConfiguration _configuration,
+                    const std::string _datasetname) :
         camera_parameters(_camera_parameters),
         configuration(_configuration),
+        datasetname(_datasetname),
         volumedata(_configuration.volume_size, _configuration.voxel_scale),
         model_data(_configuration.num_levels, _camera_parameters),
         current_pose{},
@@ -156,10 +158,20 @@ cv::Mat Pipeline::get_last_model_normal_frame_in_camera_coordinates() const
 
 void Pipeline::save_tsdf_color_volume_point_cloud() const
 {
-    createAndSaveTSDFPointCloudVolumeData_multi_threads(volumedata.tsdf_volume, poses, "../output/TSDF_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, configuration.truncation_distance, true);
-    createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, volumedata.tsdf_volume, poses, "../output/Color_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+    std::string path = "../output/" + datasetname + "/";
+    if (!std::filesystem::exists(path)) {
+        try {
+            if (!std::filesystem::create_directories(path)) {
+                std::cerr << "Failed to create output directory: " << path << std::endl;
+            }
+        } catch (const std::filesystem::filesystem_error& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+        }
+    }
+    createAndSaveTSDFPointCloudVolumeData_multi_threads(volumedata.tsdf_volume, poses, "../output/" + datasetname + "/TSDF_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, configuration.truncation_distance, true);
+    createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, volumedata.tsdf_volume, poses, "../output/" + datasetname + "/Color_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
     #ifdef USE_CLASSES
-    createAndSaveClassPointCloudVolumeData_multi_threads(volumedata.class_volume, volumedata.tsdf_volume, poses, "../output/Class_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+    createAndSaveClassPointCloudVolumeData_multi_threads(volumedata.class_volume, volumedata.tsdf_volume, poses, "../output/" + datasetname + "/Class_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
     #endif
 }
 

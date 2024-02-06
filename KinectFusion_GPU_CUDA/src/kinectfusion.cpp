@@ -1,9 +1,11 @@
 #include "kinectfusion.hpp"
 
 Pipeline::Pipeline(const CameraParameters _camera_parameters,
-                    const GlobalConfiguration _configuration) :
+                    const GlobalConfiguration _configuration,
+                    const std::string _datasetname) :
         camera_parameters(_camera_parameters),
         configuration(_configuration),
+        datasetname(_datasetname),
         volume_data_GPU(_configuration.volume_size_int3, _configuration.voxel_scale),
         model_data_GPU(_configuration.num_levels, _camera_parameters),
         current_pose{},
@@ -139,11 +141,21 @@ cv::Mat Pipeline::get_last_model_normal_frame_in_camera_coordinates() const
 
 void Pipeline::save_tsdf_color_volume_point_cloud() const
 {   
+    std::string path = "../output/" + datasetname + "/";
+    if (!std::filesystem::exists(path)) {
+        try {
+            if (!std::filesystem::create_directories(path)) {
+                std::cerr << "Failed to create output directory: " << path << std::endl;
+            }
+        } catch (const std::filesystem::filesystem_error& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+        }
+    }
     cv::Mat tsdf_volume, color_volume;
     volume_data_GPU.tsdf_volume.download(tsdf_volume);
     volume_data_GPU.color_volume.download(color_volume);
-    createAndSaveTSDFPointCloudVolumeData_multi_threads(tsdf_volume, poses, "../output/TSDF_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, configuration.truncation_distance, true);
-    createAndSaveColorPointCloudVolumeData_multi_threads(color_volume, tsdf_volume, poses, "../output/Color_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, true);
+    createAndSaveTSDFPointCloudVolumeData_multi_threads(tsdf_volume, poses, "../output/" + datasetname + "/TSDF_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, configuration.truncation_distance, true);
+    createAndSaveColorPointCloudVolumeData_multi_threads(color_volume, tsdf_volume, poses, "../output/" + datasetname + "/Color_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, true);
 }
 
 // multi threads version

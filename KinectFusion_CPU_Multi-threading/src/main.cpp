@@ -14,7 +14,8 @@ int main(int argc, char **argv)
     CameraParameters cameraparameters;
     GlobalConfiguration configuration;
 
-    std::string filenameIn = std::string("../../Data/rgbd_dataset_freiburg1_xyz/");
+    std::string datasetname = std::string("rgbd_dataset_freiburg1_xyz");
+    std::string filenameIn = std::string("../../Data/") + datasetname + std::string("/");
 
     VirtualSensor sensor;
     // Load video
@@ -40,7 +41,7 @@ int main(int argc, char **argv)
     int frame_count_FPS = 0;
     double fps = 0.0;
 
-    Pipeline pipeline {cameraparameters, configuration};
+    Pipeline pipeline {cameraparameters, configuration, datasetname};
     while(sensor.processNextFrame()){
 
         auto start = std::chrono::high_resolution_clock::now(); // start time measurement
