@@ -159,11 +159,11 @@ cv::Mat Pipeline::get_last_model_normal_frame_in_camera_coordinates() const
 
 void Pipeline::save_tsdf_color_volume_point_cloud() const
 {
-    std::string path = "../output/";
-    if (!std::filesystem::exists(path)) {
+    std::string outputPath = "../output/";
+    if (!std::filesystem::exists(outputPath)) {
         try {
-            if (!std::filesystem::create_directories(path)) {
-                std::cerr << "Failed to create output directory: " << path << std::endl;
+            if (!std::filesystem::create_directories(outputPath)) {
+                std::cerr << "Failed to create output directory: " << outputPath << std::endl;
             }
         } catch (const std::filesystem::filesystem_error& e) {
             std::cerr << "Error: " << e.what() << std::endl;
@@ -172,8 +172,8 @@ void Pipeline::save_tsdf_color_volume_point_cloud() const
     cv::Mat tsdf_volume, color_volume;
     volume_data_GPU.tsdf_volume.download(tsdf_volume);
     volume_data_GPU.color_volume.download(color_volume);
-    createAndSaveTSDFPointCloudVolumeData_multi_threads(tsdf_volume, poses, "../output/TSDF_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, configuration.truncation_distance, true);
-    createAndSaveColorPointCloudVolumeData_multi_threads(color_volume, tsdf_volume, poses, "../output/Color_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, true);
+    createAndSaveTSDFPointCloudVolumeData_multi_threads(tsdf_volume, poses, outputPath + "TSDF_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, configuration.truncation_distance, true);
+    createAndSaveColorPointCloudVolumeData_multi_threads(color_volume, tsdf_volume, poses, outputPath + "Color_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, true);
 }
 
 // multi threads version

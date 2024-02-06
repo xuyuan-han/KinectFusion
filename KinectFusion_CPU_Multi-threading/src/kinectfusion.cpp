@@ -158,20 +158,20 @@ cv::Mat Pipeline::get_last_model_normal_frame_in_camera_coordinates() const
 
 void Pipeline::save_tsdf_color_volume_point_cloud() const
 {
-    std::string path = "../output/" + datasetname + "/";
-    if (!std::filesystem::exists(path)) {
+    std::string outputPath = "../output/output_" + datasetname + "/";
+    if (!std::filesystem::exists(outputPath)) {
         try {
-            if (!std::filesystem::create_directories(path)) {
-                std::cerr << "Failed to create output directory: " << path << std::endl;
+            if (!std::filesystem::create_directories(outputPath)) {
+                std::cerr << "Failed to create output directory: " << outputPath << std::endl;
             }
         } catch (const std::filesystem::filesystem_error& e) {
             std::cerr << "Error: " << e.what() << std::endl;
         }
     }
-    createAndSaveTSDFPointCloudVolumeData_multi_threads(volumedata.tsdf_volume, poses, "../output/" + datasetname + "/TSDF_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, configuration.truncation_distance, true);
-    createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, volumedata.tsdf_volume, poses, "../output/" + datasetname + "/Color_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+    createAndSaveTSDFPointCloudVolumeData_multi_threads(volumedata.tsdf_volume, poses, outputPath + "TSDF_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, configuration.truncation_distance, true);
+    createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, volumedata.tsdf_volume, poses, outputPath + "Color_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
     #ifdef USE_CLASSES
-    createAndSaveClassPointCloudVolumeData_multi_threads(volumedata.class_volume, volumedata.tsdf_volume, poses, "../output/" + datasetname + "/Class_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+    createAndSaveClassPointCloudVolumeData_multi_threads(volumedata.class_volume, volumedata.tsdf_volume, poses, outputPath + "Class_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
     #endif
 }
 
@@ -707,6 +707,7 @@ void saveClassPointCloudProcessVolumeSlice(const cv::Mat& classMatrix, const cv:
     tempFile.close();
 }
 
+// L.N Shaded rendering
 cv::Mat normalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, const cv::Mat& vertex) {
     const int col = normal.cols;
     const int row = normal.rows;
