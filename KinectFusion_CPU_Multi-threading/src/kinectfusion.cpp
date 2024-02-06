@@ -120,7 +120,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     elapsed = end - start;
     std::cout << "-- Surface prediction:\t" << elapsed.count() << " ms" << std::endl;
     #endif
-    
+
     last_model_color_frame = model_data.color_pyramid[0];
     last_model_normal_frame = model_data.normal_pyramid[0];
     last_model_vertex_frame = model_data.vertex_pyramid[0];
@@ -714,8 +714,6 @@ cv::Mat normalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, con
 
             // Calculate the dot product between the normal and light vectors
             float dotProduct = nor.dot(light);
-
-         
 
             // Assign the dot product as the intensity
             results.at<uchar>(i, t) = static_cast<uchar>((dotProduct + 1.0) * 0.5 * 255.0);

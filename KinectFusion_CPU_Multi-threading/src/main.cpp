@@ -77,8 +77,10 @@ int main(int argc, char **argv)
         }
     
         cv::Mat image_last_model_color_frame = pipeline.get_last_model_color_frame();
+        cv::Mat image_normalMapping = normalMapping(pipeline.get_last_model_normal_frame_in_camera_coordinates(), light, pipeline.get_last_model_vertex_frame());
         std::string fps_text = "FPS: " + std::to_string(int(fps));
         cv::putText(image_last_model_color_frame, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 2);
+        cv::putText(image_normalMapping, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0), 2);
 
         cv::imshow("InputRGB", sensor.getColorRGBX());
         cv::moveWindow("InputRGB", 0, 0);
@@ -93,10 +95,11 @@ int main(int argc, char **argv)
         cv::imshow("SurfacePrediction Output: Color", image_last_model_color_frame); // pipeline.get_last_model_color_frame() with FPS
         cv::moveWindow("SurfacePrediction Output: Color", 0, sensor.getColorRGBX().rows + 40);
 
-        cv::imshow("SurfacePrediction Output: Normal (in camera frame)", pipeline.get_last_model_normal_frame_in_camera_coordinates());
-        cv::moveWindow("SurfacePrediction Output: Normal (in camera frame)", sensor.getColorRGBX().cols, sensor.getColorRGBX().rows + 40);
-        cv::imshow("normal Mapping", normalMapping(pipeline.get_last_model_normal_frame_in_camera_coordinates(), light, pipeline.get_last_model_vertex_frame()));
-        cv::moveWindow("normal Mapping", sensor.getColorRGBX().cols * 2, sensor.getColorRGBX().rows + 40);
+        cv::imshow("normal Mapping", image_normalMapping);
+        cv::moveWindow("normal Mapping", sensor.getColorRGBX().cols, sensor.getColorRGBX().rows + 40);
+
+        // cv::imshow("SurfacePrediction Output: Normal (in camera frame)", pipeline.get_last_model_normal_frame_in_camera_coordinates());
+        // cv::moveWindow("SurfacePrediction Output: Normal (in camera frame)", sensor.getColorRGBX().cols * 2, sensor.getColorRGBX().rows + 40);
 
         int key = cv::waitKey(1);
         if (key != -1) {
