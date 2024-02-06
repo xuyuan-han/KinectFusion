@@ -162,8 +162,8 @@ void Pipeline::save_tsdf_color_volume_point_cloud() const
     cv::Mat tsdf_volume, color_volume;
     volume_data_GPU.tsdf_volume.download(tsdf_volume);
     volume_data_GPU.color_volume.download(color_volume);
-    createAndSaveTSDFPointCloudVolumeData_multi_threads(tsdf_volume, poses, "TSDF_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, configuration.truncation_distance, true);
-    createAndSaveColorPointCloudVolumeData_multi_threads(color_volume, tsdf_volume, poses, "Color_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, true);
+    createAndSaveTSDFPointCloudVolumeData_multi_threads(tsdf_volume, poses, "../output/TSDF_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, configuration.truncation_distance, true);
+    createAndSaveColorPointCloudVolumeData_multi_threads(color_volume, tsdf_volume, poses, "../output/Color_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, true);
 }
 
 // multi threads version

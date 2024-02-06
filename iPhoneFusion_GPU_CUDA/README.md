@@ -143,6 +143,13 @@ make -j16
 ### Running
 
 ```bash
-cd iPhoneFusion_GPU_CUDA/build
+# make sure you are in the *iPhoneFusion_GPU_CUDA* directory under the root directory of this project
+cd iPhoneFusion_GPU_CUDA
+mkdir -p output # create a new directory to store the output
+cd build
 ./iPhoneFusion_CUDA
 ```
+
+### Results
+
+The reconstructed 3D model and output videos will be stored in the `output` directory.

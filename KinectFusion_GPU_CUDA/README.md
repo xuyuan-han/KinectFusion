@@ -49,7 +49,7 @@ make install
 ### Download the TUM RGB-D Dataset
 
 ```bash
-# make sure you are in the root directory of this project
+# make sure you are in the *root directory* of this project
 cd KinectFusion
 mkdir Data && cd Data
 wget https://vision.in.tum.de/rgbd/dataset/freiburg1/rgbd_dataset_freiburg1_xyz.tgz
@@ -92,6 +92,13 @@ make -j16
 ### Running
 
 ```bash
-cd KinectFusion_GPU_CUDA/build
+# make sure you are in the *KinectFusion_GPU_CUDA* directory under the root directory of this project
+cd KinectFusion_GPU_CUDA
+mkdir -p output # create a new directory to store the output
+cd build
 ./KinectFusion_CUDA
 ```
+
+### Results
+
+The reconstructed 3D model and output videos will be stored in the `output` directory.

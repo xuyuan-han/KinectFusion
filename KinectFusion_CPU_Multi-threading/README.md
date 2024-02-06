@@ -21,7 +21,7 @@ Regarding the dataset, we will use the TUM RGB-D Dataset, to validate our recons
 ### Download the TUM RGB-D Dataset
 
 ```bash
-# make sure you are in the root directory of this project
+# make sure you are in the *root directory* of this project
 cd KinectFusion
 mkdir Data && cd Data
 wget https://vision.in.tum.de/rgbd/dataset/freiburg1/rgbd_dataset_freiburg1_xyz.tgz
@@ -60,6 +60,13 @@ make -j16
 ### Running
 
 ```bash
-cd KinectFusion_CPU_Multi-threading/build
+# make sure you are in the *KinectFusion_CPU_Multi-threading* directory under the root directory of this project
+cd KinectFusion_CPU_Multi-threading
+mkdir -p output # create a new directory to store the output
+cd build
 ./KinectFusion
 ```
+
+### Results
+
+The reconstructed 3D model and output videos will be stored in the `output` directory.
