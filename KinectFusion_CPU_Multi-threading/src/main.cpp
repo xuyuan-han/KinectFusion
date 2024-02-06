@@ -1,6 +1,6 @@
 #include "kinectfusion.hpp"
 
-#define MAXFRAMECNT 300 // Process MAXFRAMECNT frames, comment out this line to process all frames
+// #define MAXFRAMECNT 300 // Process MAXFRAMECNT frames, comment out this line to process all frames
 
 int main(int argc, char **argv)
 {
@@ -49,15 +49,21 @@ int main(int argc, char **argv)
 
         auto end = std::chrono::high_resolution_clock::now(); // end time measurement
         std::chrono::duration<double, std::milli> elapsed = end - start; // elapsed time in milliseconds
+        
+        #ifdef PRINT_MODULE_COMP_TIME
+        std::cout << std::endl;
+        #endif
 
         if (!success){
-            std::cout << "\n>>> Frame " << sensor.getCurrentFrameCnt() << " could not be processed" << std::endl;
+            std::cout << ">>> Frame " << sensor.getCurrentFrameCnt() << " could not be processed" << std::endl;
             // break;
         }else{
-            std::cout << "\n>>> Frame " << sensor.getCurrentFrameCnt() << " processed: " << elapsed.count() << " ms" << std::endl;
+            std::cout << ">>> Frame " << sensor.getCurrentFrameCnt() << " processed: " << elapsed.count() << " ms" << std::endl;
         }
         
+        #ifdef PRINT_MODULE_COMP_TIME
         std::cout << "-----------------------------------" << std::endl;
+        #endif
 
         frame_count_FPS++;
         double current_time = cv::getTickCount();

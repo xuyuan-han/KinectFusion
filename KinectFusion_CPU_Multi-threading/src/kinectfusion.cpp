@@ -26,7 +26,10 @@ Pipeline::Pipeline(const CameraParameters _camera_parameters,
 
 bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map, const cv::Mat_<uchar>& segmentation_map)
 {
+    #ifdef PRINT_MODULE_COMP_TIME
     auto start = std::chrono::high_resolution_clock::now();
+    #endif
+
     FrameData frame_data = surface_measurement(
         depth_map,
         camera_parameters,
@@ -36,11 +39,17 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         configuration.bfilter_color_sigma,
         configuration.bfilter_spatial_sigma);
     frame_data.color_pyramid[0] = color_map;
+
+    #ifdef PRINT_MODULE_COMP_TIME
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
     std::cout << "-- Surface measurement:\t" << elapsed.count() << " ms" << std::endl;
+    #endif
 
+    #ifdef PRINT_MODULE_COMP_TIME
     start = std::chrono::high_resolution_clock::now();
+    #endif
+
     bool icp_success { true };
     if (frame_id > 0) { // Do not perform ICP for the very first frame
         icp_success = pose_estimation(
@@ -53,15 +62,21 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
             configuration.angle_threshold,
             configuration.icp_iterations);
     }
+
+    #ifdef PRINT_MODULE_COMP_TIME
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
     std::cout << "-- Pose estimation:\t" << elapsed.count() << " ms" << std::endl;
+    #endif
 
     if (!icp_success)
         return false;
     poses.push_back(current_pose);
 
+    #ifdef PRINT_MODULE_COMP_TIME
     start = std::chrono::high_resolution_clock::now();
+    #endif
+
 #ifdef USE_CPU_MULTI_THREADING
     Surface_Reconstruction::integrate_multi_threads(
         frame_data.depth_pyramid[0],
@@ -80,11 +95,15 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
         configuration.truncation_distance,
         current_pose);
 #endif
+
+    #ifdef PRINT_MODULE_COMP_TIME
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
     std::cout << "-- Surface reconstruct: " << elapsed.count() << " ms" << std::endl;
 
     start = std::chrono::high_resolution_clock::now();
+    #endif
+
     for (int level = 0; level < configuration.num_levels; ++level){
         surface_prediction(
             volumedata,
@@ -95,10 +114,13 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
             configuration.truncation_distance,
             current_pose);
     }
+
+    #ifdef PRINT_MODULE_COMP_TIME
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
     std::cout << "-- Surface prediction:\t" << elapsed.count() << " ms" << std::endl;
-
+    #endif
+    
     last_model_color_frame = model_data.color_pyramid[0];
     last_model_normal_frame = model_data.normal_pyramid[0];
     last_model_vertex_frame = model_data.vertex_pyramid[0];

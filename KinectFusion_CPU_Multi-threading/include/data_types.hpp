@@ -12,6 +12,7 @@
 #include <functional>
 
 #define USE_CPU_MULTI_THREADING
+// #define PRINT_MODULE_COMP_TIME
 //#define USE_CLASSES
 
 #define DIVSHORTMAX 0.0000305185f 
