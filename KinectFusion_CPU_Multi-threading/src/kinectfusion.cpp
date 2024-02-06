@@ -695,22 +695,20 @@ void saveClassPointCloudProcessVolumeSlice(const cv::Mat& classMatrix, const cv:
     tempFile.close();
 }
 
-cv::Mat normalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, const cv::Mat& vectex) {
+cv::Mat normalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, const cv::Mat& vertex) {
     const int col = normal.cols;
     const int row = normal.rows;
     // Initialize a matrix to store intensity values
     cv::Mat results(row, col, CV_8U);  
-    cv::Mat norma = normal.clone();
-    cv::Mat vecte = vectex.clone();
 
     for (int i = 0; i < row; i++) {
         for (int t = 0; t < col; t++) {
-            cv::Vec3f& vec = vecte.at<cv::Vec3f>(i, t);
+            const cv::Vec3f& vec = vertex.at<cv::Vec3f>(i, t);
             // light vector calculation
             cv::Vec3f light = lightPosition - vec;  
             cv::normalize(light, light);
 
-            cv::Vec3f& nor = norma.at<cv::Vec3f>(i, t);
+            const cv::Vec3f& nor = normal.at<cv::Vec3f>(i, t);
 
             // Calculate the dot product between the normal and light vectors
             float dotProduct = nor.dot(light);
