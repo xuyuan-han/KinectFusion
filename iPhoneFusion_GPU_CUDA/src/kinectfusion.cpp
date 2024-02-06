@@ -477,10 +477,10 @@ int save_camera_pose_point_cloud(Eigen::Matrix4f current_pose, int numVertices, 
 
     // Write the pyramid vertices to the file
     for (int i = 0; i < 4; ++i) {
-        tempFilePyramid << pyramidBase(i, 0) << " " << pyramidBase(i, 1) << " " << pyramidBase(i, 2) << " 0 0 255\n"; // blue base
+        tempFilePyramid << pyramidBase(i, 0) << " " << pyramidBase(i, 1) << " " << pyramidBase(i, 2) << " 255 255 0\n"; // yellow base
         ++numVertices;
     }
-    tempFilePyramid << pyramidApex.x() << " " << pyramidApex.y() << " " << pyramidApex.z() << " 255 0 0\n"; // red apex
+    tempFilePyramid << pyramidApex.x() << " " << pyramidApex.y() << " " << pyramidApex.z() << " 255 255 0\n"; // yellow apex
     ++numVertices;
 
     const int lineResolution = 50; // Number of points along each line

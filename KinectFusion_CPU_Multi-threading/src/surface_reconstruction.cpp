@@ -72,18 +72,13 @@ void Surface_Reconstruction::reconstructionProcessVolumeSlice(VolumeData* vol, c
 							cv::Vec3b color = oldColor;
 
 							if (sdf <= trancutionDistance / 2 && sdf >= -trancutionDistance / 2) {
-								// color[0] = (color[0] * oldWeight + colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[0] * weight) / (oldWeight + weight);
-								// color[1] = (color[1] * oldWeight + colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[1] * weight) / (oldWeight + weight);
-								// color[2] = (color[2] * oldWeight + colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[2] * weight) / (oldWeight + weight);
+								color[0] = (color[0] * oldWeight + colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[0] * weight) / (oldWeight + weight);
+								color[1] = (color[1] * oldWeight + colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[1] * weight) / (oldWeight + weight);
+								color[2] = (color[2] * oldWeight + colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[2] * weight) / (oldWeight + weight);
 
-								color[0] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[0];
-								color[1] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[1];
-								color[2] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[2];
-
-								// for now just use the color of the voxel
-								// color[0] = 255;
-								// color[1] = 255;
-								// color[2] = 255;
+								// color[0] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[0];
+								// color[1] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[1];
+								// color[2] = colorMap.at<cv::Vec3b>(pixel[1], pixel[0])[2];
 							}
 
 							vol->tsdf_volume.at<cv::Vec<short, 2>>(r, c)[0] = newSdf_short;
