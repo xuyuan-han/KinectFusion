@@ -62,3 +62,5 @@ void rotate_map_MatSlice(cv::Mat& mat, const Eigen::Matrix3f& rotation, int star
 cv::Vec3b getColorForClass(uchar classIndex);
 
 cv::Mat normalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, const cv::Mat& vectex);
+
+void processNormalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, const cv::Mat& vertex, cv::Mat& results, int startRow, int endRow);

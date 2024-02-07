@@ -707,27 +707,39 @@ void saveClassPointCloudProcessVolumeSlice(const cv::Mat& classMatrix, const cv:
     tempFile.close();
 }
 
-// L.N Shaded rendering
-cv::Mat normalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, const cv::Mat& vertex) {
-    const int col = normal.cols;
-    const int row = normal.rows;
-    // Initialize a matrix to store intensity values
-    cv::Mat results(row, col, CV_8U);  
-
-    for (int i = 0; i < row; i++) {
-        for (int t = 0; t < col; t++) {
+void processNormalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, const cv::Mat& vertex, cv::Mat& results, int startRow, int endRow) {
+    for (int i = startRow; i < endRow; i++) {
+        for (int t = 0; t < normal.cols; t++) {
             const cv::Vec3f& vec = vertex.at<cv::Vec3f>(i, t);
-            // light vector calculation
             cv::Vec3f light = lightPosition - vec;  
             cv::normalize(light, light);
 
             const cv::Vec3f& nor = normal.at<cv::Vec3f>(i, t);
-
-            // Calculate the dot product between the normal and light vectors
             float dotProduct = nor.dot(light);
-
-            // Assign the dot product as the intensity
             results.at<uchar>(i, t) = static_cast<uchar>((dotProduct + 1.0) * 0.5 * 255.0);
+        }
+    }
+}
+
+// L.N Shaded rendering
+cv::Mat normalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, const cv::Mat& vertex) {
+    int row = normal.rows;
+    int col = normal.cols;
+    cv::Mat results(row, col, CV_8U);
+
+    int numThreads = std::thread::hardware_concurrency();
+    std::vector<std::thread> threads(numThreads);
+
+    int rowsPerThread = row / numThreads;
+    for (int i = 0; i < numThreads; ++i) {
+        int startRow = i * rowsPerThread;
+        int endRow = (i == numThreads - 1) ? row : (i + 1) * rowsPerThread; // last thread handles remaining rows
+        threads[i] = std::thread(processNormalMapping, std::cref(normal), lightPosition, std::cref(vertex), std::ref(results), startRow, endRow);
+    }
+
+    for (auto& th : threads) {
+        if (th.joinable()) {
+            th.join();
         }
     }
 

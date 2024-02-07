@@ -543,3 +543,4 @@ void rotate_map_MatSlice(cv::Mat& mat, const Eigen::Matrix3f& rotation, int star
         }
     }
 }
+
