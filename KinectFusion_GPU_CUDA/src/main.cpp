@@ -28,11 +28,11 @@ int main(int argc, char **argv)
     int fourcc = cv::VideoWriter::fourcc('M', 'J', 'P', 'G');
     double output_video_fps = 30.0;
     cv::Size output_frameSize(640, 480);
-    cv::VideoWriter videoWriter_InputRGB(outputPath + "InputRGB.avi", fourcc, output_video_fps, output_frameSize, true);
-    cv::VideoWriter videoWriter_InputDepth(outputPath + "InputDepth.avi", fourcc, output_video_fps, output_frameSize, true);
-    cv::VideoWriter videoWriter_ModelRGB(outputPath + "ModelRGB.avi", fourcc, output_video_fps, output_frameSize, true);
-    cv::VideoWriter videoWriter_ModelLNShaded(outputPath + "ModelLNShaded.avi", fourcc, output_video_fps, output_frameSize, true);
-    if (!videoWriter_InputRGB.isOpened() || !videoWriter_InputDepth.isOpened() || !videoWriter_ModelRGB.isOpened() || !videoWriter_ModelLNShaded.isOpened()) {
+    cv::VideoWriter videoWriter_Input_RGB(outputPath + "Input_RGB.avi", fourcc, output_video_fps, output_frameSize, true);
+    cv::VideoWriter videoWriter_Input_Depth(outputPath + "Input_Depth.avi", fourcc, output_video_fps, output_frameSize, true);
+    cv::VideoWriter videoWriter_Model_RGB(outputPath + "Model_RGB.avi", fourcc, output_video_fps, output_frameSize, true);
+    cv::VideoWriter videoWriter_Model_LNShaded(outputPath + "Model_LNShaded.avi", fourcc, output_video_fps, output_frameSize, true);
+    if (!videoWriter_Input_RGB.isOpened() || !videoWriter_Input_Depth.isOpened() || !videoWriter_Model_RGB.isOpened() || !videoWriter_Model_LNShaded.isOpened()) {
         std::cerr << "Failed to open video writer" << std::endl;
         return -1;
     }
@@ -101,6 +101,7 @@ int main(int argc, char **argv)
         cv::Mat image_last_model_color_frame = pipeline.get_last_model_color_frame();
         
         // L.N Shaded rendering
+        // light = { pipeline.get_poses().back()(0,3), pipeline.get_poses().back()(1,3), pipeline.get_poses().back()(2,3) };
         cv::Mat image_normalMapping = normalMapping(pipeline.get_last_model_normal_frame(), light, pipeline.get_last_model_vertex_frame());
 
         std::string fps_text = "FPS: " + std::to_string(int(fps));
@@ -113,30 +114,30 @@ int main(int argc, char **argv)
         cv::cvtColor(depthNormalized, depthNormalized, cv::COLOR_GRAY2BGR);
 
     #ifdef SHOW_IMAGES
-        cv::imshow("InputRGB", sensor.getColorRGBX());
-        cv::moveWindow("InputRGB", 0, 0);
+        cv::imshow("Input_RGB", sensor.getColorRGBX());
+        cv::moveWindow("Input_RGB", 0, 0);
 
-        cv::imshow("InputDepth", depthNormalized);
-        cv::moveWindow("InputDepth", sensor.getColorRGBX().cols, 0);
+        cv::imshow("Input_Depth", depthNormalized);
+        cv::moveWindow("Input_Depth", sensor.getColorRGBX().cols, 0);
         #ifdef USE_CLASSES
-        cv::imshow("InputSegmentation", sensor.getSegmentation());
-        cv::moveWindow("InputSegmentation", sensor.getColorRGBX().cols*2, 0);
+        cv::imshow("Input_Segmentation", sensor.getSegmentation());
+        cv::moveWindow("Input_Segmentation", sensor.getColorRGBX().cols*2, 0);
         #endif
-        cv::imshow("ModelRGB", image_last_model_color_frame); // pipeline.get_last_model_color_frame() with FPS
-        cv::moveWindow("ModelRGB", 0, sensor.getColorRGBX().rows + 40);
+        cv::imshow("Model_RGB", image_last_model_color_frame); // pipeline.get_last_model_color_frame() with FPS
+        cv::moveWindow("Model_RGB", 0, sensor.getColorRGBX().rows + 40);
 
         // L.N Shaded rendering
-        cv::imshow("ModelLNShaded", image_normalMapping);
-        cv::moveWindow("ModelLNShaded", sensor.getColorRGBX().cols, sensor.getColorRGBX().rows + 40);
+        cv::imshow("Model_LNShaded", image_normalMapping);
+        cv::moveWindow("Model_LNShaded", sensor.getColorRGBX().cols, sensor.getColorRGBX().rows + 40);
 
         // cv::imshow("SurfacePrediction Output: Normal (in camera frame)", pipeline.get_last_model_normal_frame_in_camera_coordinates());
         // cv::moveWindow("SurfacePrediction Output: Normal (in camera frame)", sensor.getColorRGBX().cols * 2, sensor.getColorRGBX().rows + 40);
     #endif
     #ifdef OUTPUT_VIDEO
-        videoWriter_InputRGB.write(sensor.getColorRGBX());
-        videoWriter_InputDepth.write(depthNormalized);
-        videoWriter_ModelRGB.write(image_last_model_color_frame);
-        videoWriter_ModelLNShaded.write(image_normalMapping);
+        videoWriter_Input_RGB.write(sensor.getColorRGBX());
+        videoWriter_Input_Depth.write(depthNormalized);
+        videoWriter_Model_RGB.write(image_last_model_color_frame);
+        videoWriter_Model_LNShaded.write(image_normalMapping);
     #endif
 
         int key = cv::waitKey(1);
@@ -155,10 +156,10 @@ int main(int argc, char **argv)
 
     #ifdef OUTPUT_VIDEO
     std::cout << ">> Saving videos..." << std::endl;
-    videoWriter_InputDepth.release();
-    videoWriter_InputRGB.release();
-    videoWriter_ModelRGB.release();
-    videoWriter_ModelLNShaded.release();
+    videoWriter_Input_Depth.release();
+    videoWriter_Input_RGB.release();
+    videoWriter_Model_RGB.release();
+    videoWriter_Model_LNShaded.release();
     std::cout << ">>> Videos saved" << std::endl;
     #endif
 

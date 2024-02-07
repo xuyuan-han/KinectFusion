@@ -42,8 +42,17 @@ struct GlobalConfiguration {
 	float bfilter_color_sigma { 1.f };
 	float bfilter_spatial_sigma { 1.f };
 
-	// The initial distance of the camera from the volume center along the z-axis (in mm)
-	float init_depth { 1600.f };
+	// The initial distance of the camera from the volume center along the x-axis (in mm)
+	float init_depth_x { 0.f };
+    // The initial distance of the camera from the volume center along the y-axis (in mm)
+	float init_depth_y { 1000.f };
+    // The initial distance of the camera from the volume center along the z-axis (in mm)
+	float init_depth_z { 1600.f };
+
+    // The initial angle of the camera around the z,y,x-axis (in degrees)
+    float init_alpha { 0.f }; // The initial angle of the camera around the z-axis (in degrees)
+    float init_beta { 0.f }; // The initial angle of the camera around the y-axis (in degrees)
+    float init_gamma { -40.f }; // The initial angle of the camera around the x-axis (in degrees)
 
 	// Downloads the model frame for each frame (for visualization purposes). If this is set to true, you can
 	// retrieve the frame with Pipeline::get_last_model_frame()

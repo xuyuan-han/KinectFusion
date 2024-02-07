@@ -13,16 +13,35 @@ Pipeline::Pipeline(const CameraParameters _camera_parameters,
         frame_id{0}
 {
     current_pose.setIdentity();
-    current_pose(0, 3) = _configuration.volume_size_int3.x / 2 * _configuration.voxel_scale;
-    current_pose(1, 3) = 0;
-    current_pose(2, 3) = _configuration.volume_size_int3.z / 2 * _configuration.voxel_scale - _configuration.init_depth;
+    current_pose(0, 3) = _configuration.volume_size_int3.x / 2 * _configuration.voxel_scale - _configuration.init_depth_x;
+    current_pose(1, 3) = _configuration.volume_size_int3.y / 2 * _configuration.voxel_scale - _configuration.init_depth_y;
+    current_pose(2, 3) = _configuration.volume_size_int3.z / 2 * _configuration.voxel_scale - _configuration.init_depth_z;
 
-    float beta = -40.0f; // rotate around x axis by -45 degrees
+    float alpha = _configuration.init_alpha;
+    float beta = _configuration.init_beta;
+    float gamma = _configuration.init_gamma;
+
+    alpha = alpha / 180.0f * M_PI;
     beta = beta / 180.0f * M_PI;
-    Eigen::Matrix3f rotation_matrix;
-    rotation_matrix << 1, 0, 0,
-                       0, cosf(beta), -sinf(beta),
-                       0, sinf(beta), cosf(beta);
+    gamma = gamma / 180.0f * M_PI;
+
+    Eigen::Matrix3f rotation_matrix_z;
+    rotation_matrix_z << cosf(alpha), -sinf(alpha), 0,
+                        sinf(alpha), cosf(alpha), 0,
+                        0, 0, 1;
+
+    Eigen::Matrix3f rotation_matrix_y;
+    rotation_matrix_y << cosf(beta), 0, sinf(beta),
+                        0, 1, 0,
+                        -sinf(beta), 0, cosf(beta);
+
+    Eigen::Matrix3f rotation_matrix_x;
+    rotation_matrix_x << 1, 0, 0,
+                        0, cosf(gamma), -sinf(gamma),
+                        0, sinf(gamma), cosf(gamma);
+
+    Eigen::Matrix3f rotation_matrix = rotation_matrix_z * rotation_matrix_y * rotation_matrix_x;
+
     current_pose.block(0, 0, 3, 3) = rotation_matrix;
 }
 

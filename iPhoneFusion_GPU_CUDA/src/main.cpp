@@ -82,11 +82,11 @@ int main(int argc, char **argv)
         std::string fps_text = "FPS: " + std::to_string(int(fps));
         cv::putText(image_last_model_color_frame, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 2);
 
-        cv::imshow("InputRGB", sensor.getColorRGBX());
-        cv::moveWindow("InputRGB", 0, 0);
+        cv::imshow("Input_RGB", sensor.getColorRGBX());
+        cv::moveWindow("Input_RGB", 0, 0);
 
-        cv::imshow("InputDepth", sensor.getDepth()/5000.f);
-        cv::moveWindow("InputDepth", sensor.getColorRGBX().cols, 0);
+        cv::imshow("Input_Depth", sensor.getDepth()/5000.f);
+        cv::moveWindow("Input_Depth", sensor.getColorRGBX().cols, 0);
         
         cv::imshow("SurfacePrediction Output: Color", image_last_model_color_frame);
         cv::moveWindow("SurfacePrediction Output: Color", 0, sensor.getColorRGBX().rows + 40);
