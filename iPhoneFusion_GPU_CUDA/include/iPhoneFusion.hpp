@@ -84,8 +84,8 @@ public:
             cv::VideoWriter videoWriter_InputRGB(outputPath + "InputRGB.avi", fourcc, output_video_fps, output_frameSize, true);
             cv::VideoWriter videoWriter_InputDepth(outputPath + "InputDepth.avi", fourcc, output_video_fps, output_frameSize, true);
             cv::VideoWriter videoWriter_ModelRGB(outputPath + "ModelRGB.avi", fourcc, output_video_fps, output_frameSize, true);
-            cv::VideoWriter videoWriter_ModelNormalMapping(outputPath + "ModelNormalMapping.avi", fourcc, output_video_fps, output_frameSize, true);
-            if (!videoWriter_InputRGB.isOpened() || !videoWriter_InputDepth.isOpened() || !videoWriter_ModelRGB.isOpened() || !videoWriter_ModelNormalMapping.isOpened()) {
+            cv::VideoWriter videoWriter_ModelLNShaded(outputPath + "ModelLNShaded.avi", fourcc, output_video_fps, output_frameSize, true);
+            if (!videoWriter_InputRGB.isOpened() || !videoWriter_InputDepth.isOpened() || !videoWriter_ModelRGB.isOpened() || !videoWriter_ModelLNShaded.isOpened()) {
                 std::cerr << "Failed to open video writer" << std::endl;
                 return;
             }
@@ -188,7 +188,7 @@ public:
                 cv::Mat image_last_model_color_frame = pipeline.get_last_model_color_frame();
                 
                 // L.N Shaded rendering
-                cv::Mat image_normalMapping = normalMapping(pipeline.get_last_model_normal_frame_in_camera_coordinates(), light, pipeline.get_last_model_vertex_frame());
+                cv::Mat image_normalMapping = normalMapping(pipeline.get_last_model_normal_frame(), light, pipeline.get_last_model_vertex_frame());
 
                 std::string fps_text = "FPS: " + std::to_string(int(fps));
                 cv::putText(image_last_model_color_frame, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 2);
@@ -213,8 +213,8 @@ public:
                 cv::moveWindow("ModelRGB", 0, rgb.rows + 40);
 
                 // L.N Shaded rendering
-                cv::imshow("ModelNormalMapping", image_normalMapping);
-                cv::moveWindow("ModelNormalMapping", rgb.cols, rgb.rows + 40);
+                cv::imshow("ModelLNShaded", image_normalMapping);
+                cv::moveWindow("ModelLNShaded", rgb.cols, rgb.rows + 40);
 
                 // cv::imshow("SurfacePrediction Output: Normal (in camera frame)", pipeline.get_last_model_normal_frame_in_camera_coordinates());
                 // cv::moveWindow("SurfacePrediction Output: Normal (in camera frame)", rgb.cols * 2, rgb.rows + 40);
@@ -223,7 +223,7 @@ public:
                 videoWriter_InputRGB.write(rgb);
                 videoWriter_InputDepth.write(depthNormalized);
                 videoWriter_ModelRGB.write(image_last_model_color_frame);
-                videoWriter_ModelNormalMapping.write(image_normalMapping);
+                videoWriter_ModelLNShaded.write(image_normalMapping);
             #endif
 
                 int key = cv::waitKey(1);
@@ -239,7 +239,7 @@ public:
             videoWriter_InputDepth.release();
             videoWriter_InputRGB.release();
             videoWriter_ModelRGB.release();
-            videoWriter_ModelNormalMapping.release();
+            videoWriter_ModelLNShaded.release();
             #endif
 
             std::cout << ">> Point cloud generation begin" << std::endl;
