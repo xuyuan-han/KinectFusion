@@ -177,7 +177,7 @@ void Pipeline::save_tsdf_color_volume_point_cloud() const
 }
 
 // multi threads version
-void createAndSaveTSDFPointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, float truncation_distance, bool showFaces) {
+void createAndSaveTSDFPointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, float truncation_distance, bool showVolumeCorners) {
     // Keep track of the number of vertices
     int numVertices = 0;
     int dx = volume_size[0];
@@ -195,7 +195,7 @@ void createAndSaveTSDFPointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatr
         int zStart = i * zStep;
         int zEnd = (i + 1) * zStep;
         if (i == numThreads - 1) zEnd = dz;
-        threads[i] = std::thread(saveTSDFPointCloudProcessVolumeSlice, std::ref(tsdfMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, std::ref(numVerticesVec[i]), voxel_scale, truncation_distance, showFaces);
+        threads[i] = std::thread(saveTSDFPointCloudProcessVolumeSlice, std::ref(tsdfMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, std::ref(numVerticesVec[i]), voxel_scale, truncation_distance, showVolumeCorners);
     }
 
     for (auto& thread : threads) {
@@ -226,15 +226,17 @@ void createAndSaveTSDFPointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatr
     plyFile << "property float x\nproperty float y\nproperty float z\nproperty uchar red\nproperty uchar green\nproperty uchar blue\n";
     plyFile << "end_header\n";
 
-    for (const auto& tempFilename : tempFilenames) {
-        std::ifstream tempFile(tempFilename);
-        if (tempFile.good()) {
-            plyFile << tempFile.rdbuf();
-            tempFile.close();
-            std::remove(tempFilename.c_str());
-        } else {
-            std::cerr << "Error reading temporary file: " << tempFilename << std::endl;
+    for (size_t i = 0; i < tempFilenames.size(); ++i) {
+        if (numVerticesVec[i] > 0){
+            std::ifstream tempFile(tempFilenames[i]);
+            if (tempFile.good()) {
+                plyFile << tempFile.rdbuf();
+                tempFile.close();
+            } else {
+                std::cerr << "Error reading temporary file: " << tempFilenames[i] << std::endl;
+            }
         }
+        std::remove(tempFilenames[i].c_str());
     }
 
     for (const auto& camera_pose_tempFilename : camera_pose_tempFilenames) {
@@ -251,7 +253,7 @@ void createAndSaveTSDFPointCloudVolumeData_multi_threads(const cv::Mat& tsdfMatr
     plyFile.close();
 }
 
-void saveTSDFPointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, float truncation_distance, bool showFaces) {
+void saveTSDFPointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, float truncation_distance, bool showVolumeCorners) {
     std::ofstream tempFile(tempFilename);
     if (!tempFile.is_open()) {
         std::cerr << "Unable to open temporary file: " << tempFilename << std::endl;
@@ -261,7 +263,16 @@ void saveTSDFPointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::
     for (int i = 0; i < dx; ++i) {
         for (int j = 0; j < dy; ++j) {
             for (int k = zStart; k < zEnd; ++k) {
-                if ( (i==0 || j==0 || k==0 || i==dx-1 || j==dy-1 || k==dz-1) && showFaces && (i%4==3 && j%4==3 && k%4==3)){
+                const int segmentLength = std::min({dx, dy, dz}) / 6;
+                bool onVolumeCorners = (i <= segmentLength || (dx - 1 - i) <= segmentLength) &&
+                                (j <= segmentLength || (dy - 1 - j) <= segmentLength) &&
+                                (k <= segmentLength || (dz - 1 - k) <= segmentLength) &&
+                                ((i == 0 && j == 0) || (i == 0 && k == 0) || (j == 0 && k == 0) || 
+                                (i == dx - 1 && j == dy - 1) || (i == dx - 1 && k == dz - 1) || (j == dy - 1 && k == dz - 1) ||
+                                (i == 0 && j == dy - 1) || (i == 0 && k == dz - 1) || (j == 0 && k == dz - 1) || 
+                                (i == dx - 1 && j == 0) || (i == dx - 1 && k == 0) || (j == dy - 1 && k == 0));
+
+                if (showVolumeCorners && onVolumeCorners){
                     Point point;
                     point.x = i * voxel_scale;
                     point.y = j * voxel_scale;
@@ -318,7 +329,7 @@ void saveTSDFPointCloudProcessVolumeSlice(const cv::Mat& tsdfMatrix, const std::
 }
 
 // multi threads version
-void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMatrix, const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
+void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMatrix, const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showVolumeCorners) {
     // Keep track of the number of vertices
     int numVertices = 0;
     int dx = volume_size[0];
@@ -336,7 +347,7 @@ void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMa
         int zStart = i * zStep;
         int zEnd = (i + 1) * zStep;
         if (i == numThreads - 1) zEnd = dz;
-        threads[i] = std::thread(saveColorPointCloudProcessVolumeSlice, std::ref(colorMatrix), std::ref(tsdfMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, std::ref(numVerticesVec[i]), voxel_scale, showFaces);
+        threads[i] = std::thread(saveColorPointCloudProcessVolumeSlice, std::ref(colorMatrix), std::ref(tsdfMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, std::ref(numVerticesVec[i]), voxel_scale, showVolumeCorners);
     }
 
     for (auto& thread : threads) {
@@ -367,15 +378,17 @@ void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMa
     plyFile << "property float x\nproperty float y\nproperty float z\nproperty uchar red\nproperty uchar green\nproperty uchar blue\n";
     plyFile << "end_header\n";
 
-    for (const auto& tempFilename : tempFilenames) {
-        std::ifstream tempFile(tempFilename);
-        if (tempFile.good()) {
-            plyFile << tempFile.rdbuf();
-            tempFile.close();
-            std::remove(tempFilename.c_str());
-        } else {
-            std::cerr << "Error reading temporary file: " << tempFilename << std::endl;
+    for (size_t i = 0; i < tempFilenames.size(); ++i) {
+        if (numVerticesVec[i] > 0){
+            std::ifstream tempFile(tempFilenames[i]);
+            if (tempFile.good()) {
+                plyFile << tempFile.rdbuf();
+                tempFile.close();
+            } else {
+                std::cerr << "Error reading temporary file: " << tempFilenames[i] << std::endl;
+            }
         }
+        std::remove(tempFilenames[i].c_str());
     }
 
     for (const auto& camera_pose_tempFilename : camera_pose_tempFilenames) {
@@ -392,7 +405,7 @@ void createAndSaveColorPointCloudVolumeData_multi_threads(const cv::Mat& colorMa
     plyFile.close();
 }
 
-void saveColorPointCloudProcessVolumeSlice(const cv::Mat& colorMatrix, const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, bool showFaces) {
+void saveColorPointCloudProcessVolumeSlice(const cv::Mat& colorMatrix, const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, bool showVolumeCorners) {
     std::ofstream tempFile(tempFilename);
     if (!tempFile.is_open()) {
         std::cerr << "Unable to open temporary file: " << tempFilename << std::endl;
@@ -402,7 +415,16 @@ void saveColorPointCloudProcessVolumeSlice(const cv::Mat& colorMatrix, const cv:
     for (int i = 0; i < dx; ++i) {
         for (int j = 0; j < dy; ++j) {
             for (int k = zStart; k < zEnd; ++k) {
-                if ( (i==0 || j==0 || k==0 || i==dx-1 || j==dy-1 || k==dz-1) && showFaces && (i%4==3 && j%4==3 && k%4==3)){
+                const int segmentLength = std::min({dx, dy, dz}) / 6;
+                bool onVolumeCorners = (i <= segmentLength || (dx - 1 - i) <= segmentLength) &&
+                                (j <= segmentLength || (dy - 1 - j) <= segmentLength) &&
+                                (k <= segmentLength || (dz - 1 - k) <= segmentLength) &&
+                                ((i == 0 && j == 0) || (i == 0 && k == 0) || (j == 0 && k == 0) || 
+                                (i == dx - 1 && j == dy - 1) || (i == dx - 1 && k == dz - 1) || (j == dy - 1 && k == dz - 1) ||
+                                (i == 0 && j == dy - 1) || (i == 0 && k == dz - 1) || (j == 0 && k == dz - 1) || 
+                                (i == dx - 1 && j == 0) || (i == dx - 1 && k == 0) || (j == dy - 1 && k == 0));
+
+                if (showVolumeCorners && onVolumeCorners){
                     Point point;
                     point.x = i * voxel_scale;
                     point.y = j * voxel_scale;
@@ -562,7 +584,7 @@ void rotate_map_MatSlice(cv::Mat& mat, const Eigen::Matrix3f& rotation, int star
     }
 }
 
-void createAndSaveClassPointCloudVolumeData_multi_threads(const cv::Mat& classMatrix, const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showFaces) {
+void createAndSaveClassPointCloudVolumeData_multi_threads(const cv::Mat& classMatrix, const cv::Mat& tsdfMatrix, std::vector<Eigen::Matrix4f> poses, const std::string& outputFilename, Eigen::Vector3i volume_size, float voxel_scale, bool showVolumeCorners) {
     // Keep track of the number of vertices
     int numVertices = 0;
     int dx = volume_size[0];
@@ -580,7 +602,7 @@ void createAndSaveClassPointCloudVolumeData_multi_threads(const cv::Mat& classMa
         int zStart = i * zStep;
         int zEnd = (i + 1) * zStep;
         if (i == numThreads - 1) zEnd = dz;
-        threads[i] = std::thread(saveClassPointCloudProcessVolumeSlice, std::ref(classMatrix), std::ref(tsdfMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, std::ref(numVerticesVec[i]), voxel_scale, showFaces);
+        threads[i] = std::thread(saveClassPointCloudProcessVolumeSlice, std::ref(classMatrix), std::ref(tsdfMatrix), tempFilenames[i], dx, dy, dz, zStart, zEnd, std::ref(numVerticesVec[i]), voxel_scale, showVolumeCorners);
     }
 
     for (auto& thread : threads) {
@@ -638,7 +660,7 @@ void createAndSaveClassPointCloudVolumeData_multi_threads(const cv::Mat& classMa
     plyFile.close();
 }
 
-void saveClassPointCloudProcessVolumeSlice(const cv::Mat& classMatrix, const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, bool showFaces) {
+void saveClassPointCloudProcessVolumeSlice(const cv::Mat& classMatrix, const cv::Mat& tsdfMatrix, const std::string& tempFilename, int dx, int dy, int dz, int zStart, int zEnd, int& numVertices, float voxel_scale, bool showVolumeCorners) {
     std::ofstream tempFile(tempFilename);
     if (!tempFile.is_open()) {
         std::cerr << "Unable to open temporary file: " << tempFilename << std::endl;
@@ -648,7 +670,16 @@ void saveClassPointCloudProcessVolumeSlice(const cv::Mat& classMatrix, const cv:
     for (int i = 0; i < dx; ++i) {
         for (int j = 0; j < dy; ++j) {
             for (int k = zStart; k < zEnd; ++k) {
-                if ((i == 0 || j == 0 || k == 0 || i == dx - 1 || j == dy - 1 || k == dz - 1) && showFaces && (i % 4 == 3 && j % 4 == 3 && k % 4 == 3)) {
+                const int segmentLength = std::min({dx, dy, dz}) / 6;
+                bool onVolumeCorners = (i <= segmentLength || (dx - 1 - i) <= segmentLength) &&
+                                (j <= segmentLength || (dy - 1 - j) <= segmentLength) &&
+                                (k <= segmentLength || (dz - 1 - k) <= segmentLength) &&
+                                ((i == 0 && j == 0) || (i == 0 && k == 0) || (j == 0 && k == 0) || 
+                                (i == dx - 1 && j == dy - 1) || (i == dx - 1 && k == dz - 1) || (j == dy - 1 && k == dz - 1) ||
+                                (i == 0 && j == dy - 1) || (i == 0 && k == dz - 1) || (j == 0 && k == dz - 1) || 
+                                (i == dx - 1 && j == 0) || (i == dx - 1 && k == 0) || (j == dy - 1 && k == 0));
+
+                if (showVolumeCorners && onVolumeCorners){
                     Point point;
                     point.x = i * voxel_scale;
                     point.y = j * voxel_scale;
