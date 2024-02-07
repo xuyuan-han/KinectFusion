@@ -13,6 +13,9 @@
 
 using namespace std;
 
+#define SHOW_IMAGES // Show images
+#define OUTPUT_VIDEO // Save video to 'output' folder
+
 class iPhoneFusion
 {
 public:
@@ -64,6 +67,30 @@ public:
             CameraParameters cameraparameters;
             GlobalConfiguration configuration;
 
+            #ifdef OUTPUT_VIDEO
+            std::string outputPath = "../output/";
+            if (!std::filesystem::exists(outputPath)) {
+                try {
+                    if (!std::filesystem::create_directories(outputPath)) {
+                        std::cerr << "Failed to create output directory: " << outputPath << std::endl;
+                    }
+                } catch (const std::filesystem::filesystem_error& e) {
+                    std::cerr << "Error: " << e.what() << std::endl;
+                }
+            }
+            int fourcc = cv::VideoWriter::fourcc('M', 'J', 'P', 'G');
+            double output_video_fps = 30.0;
+            cv::Size output_frameSize(640, 480);
+            cv::VideoWriter videoWriter_InputRGB(outputPath + "InputRGB.avi", fourcc, output_video_fps, output_frameSize, true);
+            cv::VideoWriter videoWriter_InputDepth(outputPath + "InputDepth.avi", fourcc, output_video_fps, output_frameSize, true);
+            cv::VideoWriter videoWriter_ModelRGB(outputPath + "ModelRGB.avi", fourcc, output_video_fps, output_frameSize, true);
+            cv::VideoWriter videoWriter_ModelNormalMapping(outputPath + "ModelNormalMapping.avi", fourcc, output_video_fps, output_frameSize, true);
+            if (!videoWriter_InputRGB.isOpened() || !videoWriter_InputDepth.isOpened() || !videoWriter_ModelRGB.isOpened() || !videoWriter_ModelNormalMapping.isOpened()) {
+                std::cerr << "Failed to open video writer" << std::endl;
+                return;
+            }
+            #endif
+
             // cameraparameters.focal_x=680.0f;
             // cameraparameters.focal_y=680.0f;
             // cameraparameters.principal_x=360.5f;
@@ -81,6 +108,7 @@ public:
             Pipeline pipeline {cameraparameters, configuration};
 
             size_t frameCnt = 0;
+            cv::Vec3f light = { 0.0f, 0.0f, 0.0f };
             double last_time = cv::getTickCount();
             int frame_count_FPS = 0;
             double fps = 0.0;
@@ -124,7 +152,7 @@ public:
 
                 auto start = std::chrono::high_resolution_clock::now(); // start time measurement
 
-                depth = depth*1000.f;
+                depth = depth*1000.f; // convert to mm
 
                 bool success=pipeline.process_frame(depth, rgb, cameraparameters);
 
@@ -158,20 +186,45 @@ public:
                 }
             
                 cv::Mat image_last_model_color_frame = pipeline.get_last_model_color_frame();
+                
+                // L.N Shaded rendering
+                cv::Mat image_normalMapping = normalMapping(pipeline.get_last_model_normal_frame_in_camera_coordinates(), light, pipeline.get_last_model_vertex_frame());
+
                 std::string fps_text = "FPS: " + std::to_string(int(fps));
                 cv::putText(image_last_model_color_frame, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 2);
+                cv::putText(image_normalMapping, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0), 3);
+                cv::cvtColor(image_normalMapping, image_normalMapping, cv::COLOR_GRAY2BGR);
 
+                cv::Mat depthNormalized;
+                depth.convertTo(depthNormalized, CV_8UC1, 255.0 / (5000.f), 0);
+                cv::cvtColor(depthNormalized, depthNormalized, cv::COLOR_GRAY2BGR);
+
+            #ifdef SHOW_IMAGES
                 cv::imshow("InputRGB", rgb);
                 cv::moveWindow("InputRGB", 0, 0);
 
-                cv::imshow("InputDepth", depth/5000.f);
+                cv::imshow("InputDepth", depthNormalized);
                 cv::moveWindow("InputDepth", rgb.cols, 0);
-                
-                cv::imshow("SurfacePrediction Output: Color", image_last_model_color_frame); // pipeline.get_last_model_color_frame() with FPS
-                cv::moveWindow("SurfacePrediction Output: Color", 0, rgb.rows + 40);
+                #ifdef USE_CLASSES
+                cv::imshow("InputSegmentation", sensor.getSegmentation());
+                cv::moveWindow("InputSegmentation", rgb.cols*2, 0);
+                #endif
+                cv::imshow("ModelRGB", image_last_model_color_frame); // pipeline.get_last_model_color_frame() with FPS
+                cv::moveWindow("ModelRGB", 0, rgb.rows + 40);
 
-                cv::imshow("SurfacePrediction Output: Normal (in camera frame)", pipeline.get_last_model_normal_frame_in_camera_coordinates());
-                cv::moveWindow("SurfacePrediction Output: Normal (in camera frame)", rgb.cols, rgb.rows + 40);
+                // L.N Shaded rendering
+                cv::imshow("ModelNormalMapping", image_normalMapping);
+                cv::moveWindow("ModelNormalMapping", rgb.cols, rgb.rows + 40);
+
+                // cv::imshow("SurfacePrediction Output: Normal (in camera frame)", pipeline.get_last_model_normal_frame_in_camera_coordinates());
+                // cv::moveWindow("SurfacePrediction Output: Normal (in camera frame)", rgb.cols * 2, rgb.rows + 40);
+            #endif
+            #ifdef OUTPUT_VIDEO
+                videoWriter_InputRGB.write(rgb);
+                videoWriter_InputDepth.write(depthNormalized);
+                videoWriter_ModelRGB.write(image_last_model_color_frame);
+                videoWriter_ModelNormalMapping.write(image_normalMapping);
+            #endif
 
                 int key = cv::waitKey(1);
                 if (key != -1) {
@@ -180,6 +233,15 @@ public:
             }
             std::cout << "Finished - Total frame processed: " << frameCnt << std::endl;
             std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
+    
+            #ifdef OUTPUT_VIDEO
+            std::cout << "Saving videos..." << std::endl;
+            videoWriter_InputDepth.release();
+            videoWriter_InputRGB.release();
+            videoWriter_ModelRGB.release();
+            videoWriter_ModelNormalMapping.release();
+            #endif
+
             std::cout << ">> Point cloud generation begin" << std::endl;
             auto start = std::chrono::high_resolution_clock::now(); // start time measurement
             pipeline.save_tsdf_color_volume_point_cloud();
@@ -239,114 +301,6 @@ private:
     cv::Mat imgRGB_ { };
     cv::Mat imgDepth_ { };
 };
-
-// class iPhoneRecord3dSensor {
-// public:
-//     iPhoneRecord3dSensor(){
-//         Record3D::Record3DStream stream { };
-//         stream.onStreamStopped = [&]
-//         {
-//             OnStreamStopped();
-//         };
-//         stream.onNewFrame = [&]( const Record3D::BufferRGB &$rgbFrame,
-//                                  const Record3D::BufferDepth &$depthFrame,
-//                                  uint32_t $rgbWidth,
-//                                  uint32_t $rgbHeight,
-//                                  uint32_t $depthWidth,
-//                                  uint32_t $depthHeight,
-//                                  Record3D::DeviceType $deviceType,
-//                                  Record3D::IntrinsicMatrixCoeffs $K,
-//                                  Record3D::CameraPose $cameraPose )
-//         {
-//             OnNewFrame( $rgbFrame, $depthFrame, $rgbWidth, $rgbHeight, $depthWidth, $depthHeight, $deviceType, $K, $cameraPose );
-//         };
-
-//         // Try connecting to a device.
-//         const auto &devs = Record3D::Record3DStream::GetConnectedDevices();
-//         if ( devs.empty() )
-//         {
-//             fprintf( stderr,
-//                      "No iOS devices found. Ensure you have connected your iDevice via USB to this computer.\n" );
-//             return;
-//         }
-//         else
-//         {
-//             printf( "Found %lu iOS device(s):\n", devs.size() );
-//             for ( const auto &dev: devs )
-//             {
-//                 printf( "\tDevice ID: %u\n\tUDID: %s\n\n", dev.productId, dev.udid.c_str() );
-//             }
-//         }
-
-//         const auto &selectedDevice = devs[0];
-//         printf( "Trying to connect to device with ID %u.\n", selectedDevice.productId );
-
-//         isConnected = stream.ConnectToDevice( devs[0] );
-//         if ( isConnected )
-//         {
-//             printf( "Connected and starting to stream. Enable USB streaming in the Record3D iOS app (https://record3d.app/) in case you don't see RGBD stream.\n" );
-//         }
-//     }
-
-//     // get current depth data
-// 	cv::Mat_<float> getDepth() {
-//         // std::lock_guard<std::recursive_mutex> lock( mainThreadLock_ );
-// 		return imgDepth_.clone();
-// 	}
-
-// 	// get current color data
-// 	cv::Mat getColorRGBX() {
-//         // std::lock_guard<std::recursive_mutex> lock( mainThreadLock_ );
-// 		return imgRGB_.clone();
-// 	}
-
-// private:
-//     void OnStreamStopped()
-//     {
-//         fprintf( stderr, "Stream stopped!" );
-//     }
-
-//     void OnNewFrame( const Record3D::BufferRGB &$rgbFrame,
-//                      const Record3D::BufferDepth &$depthFrame,
-//                      uint32_t $rgbWidth,
-//                      uint32_t $rgbHeight,
-//                      uint32_t $depthWidth,
-//                      uint32_t $depthHeight,
-//                      Record3D::DeviceType $deviceType,
-//                      Record3D::IntrinsicMatrixCoeffs $K,
-//                      Record3D::CameraPose $cameraPose )
-//     {
-//         currentDeviceType_ = (Record3D::DeviceType) $deviceType;
-
-//         // std::lock_guard<std::recursive_mutex> lock( mainThreadLock_ );
-//         // When we switch between the TrueDepth and the LiDAR camera, the size frame size changes.
-//         // Recreate the RGB and Depth images with fitting size.
-//         if ( imgRGB_.rows != $rgbHeight || imgRGB_.cols != $rgbWidth
-//              || imgDepth_.rows != $depthHeight || imgDepth_.cols != $depthWidth )
-//         {
-//             imgRGB_.release();
-//             imgDepth_.release();
-
-//             imgRGB_ = cv::Mat::zeros( $rgbHeight, $rgbWidth, CV_8UC3 );
-//             imgDepth_ = cv::Mat::zeros( $depthHeight, $depthWidth, CV_32F );
-//         }
-
-//         // The `BufferRGB` and `BufferDepth` may be larger than the actual payload, therefore the true frame size is computed.
-//         constexpr int numRGBChannels = 3;
-//         memcpy( imgRGB_.data, $rgbFrame.data(), $rgbWidth * $rgbHeight * numRGBChannels * sizeof( uint8_t ) );
-//         memcpy( imgDepth_.data, $depthFrame.data(), $depthWidth * $depthHeight * sizeof( float ) );
-//     }
-
-// private:
-//     std::recursive_mutex mainThreadLock_ { };
-//     Record3D::DeviceType currentDeviceType_ { };
-
-//     cv::Mat imgRGB_ { };
-//     cv::Mat imgDepth_ { };
-
-// public:
-//     bool isConnected { false };
-// };
 
 #pragma clang diagnostic pop
 

@@ -62,6 +62,7 @@ int main(int argc, char **argv)
     #ifdef MAXFRAMECNT
     unsigned int maxFrameCnt = MAXFRAMECNT;
     #endif
+    
     cv::Vec3f light = { 0.0f, 0.0f, 0.0f };
     double last_time = cv::getTickCount();
     int frame_count_FPS = 0;

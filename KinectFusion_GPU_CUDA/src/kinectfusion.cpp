@@ -117,6 +117,7 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     
     model_data_GPU.color_pyramid[0].download(last_model_color_frame);
     model_data_GPU.normal_pyramid[0].download(last_model_normal_frame);
+    model_data_GPU.vertex_pyramid[0].download(last_model_vertex_frame);
 
     ++frame_id;
     return true;
@@ -132,6 +133,16 @@ std::vector<Eigen::Matrix4f> Pipeline::get_poses() const
 cv::Mat Pipeline::get_last_model_color_frame() const
 {
     return last_model_color_frame;
+}
+
+cv::Mat Pipeline::get_last_model_normal_frame() const
+{
+    return last_model_normal_frame;
+}
+
+cv::Mat Pipeline::get_last_model_vertex_frame() const
+{
+    return last_model_vertex_frame;
 }
 
 cv::Mat Pipeline::get_last_model_normal_frame_in_camera_coordinates() const
@@ -154,8 +165,8 @@ void Pipeline::save_tsdf_color_volume_point_cloud() const
     cv::Mat tsdf_volume, color_volume;
     volume_data_GPU.tsdf_volume.download(tsdf_volume);
     volume_data_GPU.color_volume.download(color_volume);
-    createAndSaveTSDFPointCloudVolumeData_multi_threads(tsdf_volume, poses, outputPath + "TSDF_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, configuration.truncation_distance, true);
-    createAndSaveColorPointCloudVolumeData_multi_threads(color_volume, tsdf_volume, poses, outputPath + "Color_VolumeData_PointCloud.ply", configuration.volume_size_int3, configuration.voxel_scale, true);
+    createAndSaveTSDFPointCloudVolumeData_multi_threads(tsdf_volume, poses, outputPath + "PointCloud_TSDF_VolumeData.ply", configuration.volume_size_int3, configuration.voxel_scale, configuration.truncation_distance, true);
+    createAndSaveColorPointCloudVolumeData_multi_threads(color_volume, tsdf_volume, poses, outputPath + "PointCloud_Color_VolumeData.ply", configuration.volume_size_int3, configuration.voxel_scale, true);
 }
 
 // multi threads version
@@ -544,3 +555,41 @@ void rotate_map_MatSlice(cv::Mat& mat, const Eigen::Matrix3f& rotation, int star
     }
 }
 
+void processNormalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, const cv::Mat& vertex, cv::Mat& results, int startRow, int endRow) {
+    for (int i = startRow; i < endRow; i++) {
+        for (int t = 0; t < normal.cols; t++) {
+            const cv::Vec3f& vec = vertex.at<cv::Vec3f>(i, t);
+            cv::Vec3f light = lightPosition - vec;  
+            cv::normalize(light, light);
+
+            const cv::Vec3f& nor = normal.at<cv::Vec3f>(i, t);
+            float dotProduct = nor.dot(light);
+            results.at<uchar>(i, t) = static_cast<uchar>((dotProduct + 1.0) * 0.5 * 255.0);
+        }
+    }
+}
+
+// L.N Shaded rendering
+cv::Mat normalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, const cv::Mat& vertex) {
+    int row = normal.rows;
+    int col = normal.cols;
+    cv::Mat results(row, col, CV_8U);
+
+    int numThreads = std::thread::hardware_concurrency();
+    std::vector<std::thread> threads(numThreads);
+
+    int rowsPerThread = row / numThreads;
+    for (int i = 0; i < numThreads; ++i) {
+        int startRow = i * rowsPerThread;
+        int endRow = (i == numThreads - 1) ? row : (i + 1) * rowsPerThread; // last thread handles remaining rows
+        threads[i] = std::thread(processNormalMapping, std::cref(normal), lightPosition, std::cref(vertex), std::ref(results), startRow, endRow);
+    }
+
+    for (auto& th : threads) {
+        if (th.joinable()) {
+            th.join();
+        }
+    }
+
+    return results;
+}

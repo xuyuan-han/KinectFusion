@@ -147,10 +147,12 @@ cv::Mat Pipeline::get_last_model_normal_frame() const
 {
     return last_model_normal_frame;
 }
+
 cv::Mat Pipeline::get_last_model_vertex_frame() const
 {
     return last_model_vertex_frame;
 }
+
 cv::Mat Pipeline::get_last_model_normal_frame_in_camera_coordinates() const
 {
     return rotate_map_multi_threads(last_model_normal_frame, current_pose.block(0, 0, 3, 3).inverse());
@@ -168,10 +170,10 @@ void Pipeline::save_tsdf_color_volume_point_cloud() const
             std::cerr << "Error: " << e.what() << std::endl;
         }
     }
-    createAndSaveTSDFPointCloudVolumeData_multi_threads(volumedata.tsdf_volume, poses, outputPath + "TSDF_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, configuration.truncation_distance, true);
-    createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, volumedata.tsdf_volume, poses, outputPath + "Color_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+    createAndSaveTSDFPointCloudVolumeData_multi_threads(volumedata.tsdf_volume, poses, outputPath + "PointCloud_TSDF_VolumeData.ply", configuration.volume_size, configuration.voxel_scale, configuration.truncation_distance, true);
+    createAndSaveColorPointCloudVolumeData_multi_threads(volumedata.color_volume, volumedata.tsdf_volume, poses, outputPath + "PointCloud_Color_VolumeData.ply", configuration.volume_size, configuration.voxel_scale, true);
     #ifdef USE_CLASSES
-    createAndSaveClassPointCloudVolumeData_multi_threads(volumedata.class_volume, volumedata.tsdf_volume, poses, outputPath + "Class_VolumeData_PointCloud.ply", configuration.volume_size, configuration.voxel_scale, true);
+    createAndSaveClassPointCloudVolumeData_multi_threads(volumedata.class_volume, volumedata.tsdf_volume, poses, outputPath + "PointCloud_Class_VolumeData.ply", configuration.volume_size, configuration.voxel_scale, true);
     #endif
 }
 
