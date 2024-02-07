@@ -2,10 +2,10 @@
 
 Pipeline::Pipeline(const CameraParameters _camera_parameters,
                     const GlobalConfiguration _configuration,
-                    const std::string _datasetname) :
+                    const std::string _outputPath) :
         camera_parameters(_camera_parameters),
         configuration(_configuration),
-        datasetname(_datasetname),
+        outputPath(_outputPath),
         volumedata(_configuration.volume_size, _configuration.voxel_scale),
         model_data(_configuration.num_levels, _camera_parameters),
         current_pose{},
@@ -160,7 +160,6 @@ cv::Mat Pipeline::get_last_model_normal_frame_in_camera_coordinates() const
 
 void Pipeline::save_tsdf_color_volume_point_cloud() const
 {
-    std::string outputPath = "../output/output_" + datasetname + "/";
     if (!std::filesystem::exists(outputPath)) {
         try {
             if (!std::filesystem::create_directories(outputPath)) {
@@ -783,3 +782,11 @@ cv::Vec3b getColorForClass(uchar classIndex) {
 
 }
 
+std::string getCurrentTimestamp() {
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&in_time_t), "%Y%m%d_%H%M%S");
+    return ss.str();
+}

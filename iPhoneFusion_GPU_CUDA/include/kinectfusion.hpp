@@ -14,7 +14,7 @@
 
 class Pipeline {
 public:
-    Pipeline(CameraParameters _camera_parameters, const GlobalConfiguration _configuration);
+    Pipeline(CameraParameters _camera_parameters, const GlobalConfiguration _configuration, const std::string _outputPath);
 
     ~Pipeline() = default;
 
@@ -29,6 +29,7 @@ public:
 private:
     CameraParameters camera_parameters;
     const GlobalConfiguration configuration;
+    std::string outputPath;
     GPU::VolumeData volume_data_GPU;
     GPU::ModelData model_data_GPU;
     Eigen::Matrix4f current_pose;
@@ -61,3 +62,5 @@ void rotate_map_MatSlice(cv::Mat& mat, const Eigen::Matrix3f& rotation, int star
 cv::Mat normalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, const cv::Mat& vectex);
 
 void processNormalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, const cv::Mat& vertex, cv::Mat& results, int startRow, int endRow);
+
+std::string getCurrentTimestamp();

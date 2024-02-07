@@ -9,7 +9,7 @@
 
 class Pipeline {
 public:
-    Pipeline(const CameraParameters _camera_parameters, const GlobalConfiguration _configuration, const std::string _datasetname);
+    Pipeline(const CameraParameters _camera_parameters, const GlobalConfiguration _configuration, const std::string _outputPath);
 
     ~Pipeline() = default;
 
@@ -24,7 +24,7 @@ public:
 private:
     const CameraParameters camera_parameters;
     const GlobalConfiguration configuration;
-    std::string datasetname;
+    std::string outputPath;
     VolumeData volumedata;
     ModelData model_data;
     Eigen::Matrix4f current_pose;
@@ -64,3 +64,5 @@ cv::Vec3b getColorForClass(uchar classIndex);
 cv::Mat normalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, const cv::Mat& vectex);
 
 void processNormalMapping(const cv::Mat& normal, const cv::Vec3f& lightPosition, const cv::Mat& vertex, cv::Mat& results, int startRow, int endRow);
+
+std::string getCurrentTimestamp();

@@ -68,7 +68,7 @@ public:
             GlobalConfiguration configuration;
 
             #ifdef OUTPUT_VIDEO
-            std::string outputPath = "../output/";
+            std::string outputPath = "../output/iPhoneFusion_" + getCurrentTimestamp() + "/";
             if (!std::filesystem::exists(outputPath)) {
                 try {
                     if (!std::filesystem::create_directories(outputPath)) {
@@ -105,7 +105,7 @@ public:
             cameraparameters.image_width=720;
             cameraparameters.image_height=960;
 
-            Pipeline pipeline {cameraparameters, configuration};
+            Pipeline pipeline {cameraparameters, configuration, outputPath};
 
             size_t frameCnt = 0;
             cv::Vec3f light = { 0.0f, 0.0f, 0.0f };
@@ -235,11 +235,12 @@ public:
             std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
     
             #ifdef OUTPUT_VIDEO
-            std::cout << "Saving videos..." << std::endl;
+            std::cout << ">> Saving videos..." << std::endl;
             videoWriter_InputDepth.release();
             videoWriter_InputRGB.release();
             videoWriter_ModelRGB.release();
             videoWriter_ModelLNShaded.release();
+            std::cout << ">>> Videos saved" << std::endl;
             #endif
 
             std::cout << ">> Point cloud generation begin" << std::endl;

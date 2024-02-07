@@ -20,7 +20,7 @@ int main(int argc, char **argv)
     std::string filenameIn = std::string("../../Data/") + datasetname + std::string("/");
     
     #ifdef OUTPUT_VIDEO
-    std::string outputPath = "../output/output_" + datasetname + "/";
+    std::string outputPath = "../output/" + datasetname + "_" + getCurrentTimestamp() + "/";
     if (!std::filesystem::exists(outputPath)) {
         try {
             if (!std::filesystem::create_directories(outputPath)) {
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
     int frame_count_FPS = 0;
     double fps = 0.0;
 
-    Pipeline pipeline {cameraparameters, configuration, datasetname};
+    Pipeline pipeline {cameraparameters, configuration, outputPath};
     while(sensor.processNextFrame()){
 
         auto start = std::chrono::high_resolution_clock::now(); // start time measurement
@@ -161,11 +161,12 @@ int main(int argc, char **argv)
     std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
 
     #ifdef OUTPUT_VIDEO
-    std::cout << "Saving videos..." << std::endl;
+    std::cout << ">> Saving videos..." << std::endl;
     videoWriter_InputDepth.release();
     videoWriter_InputRGB.release();
     videoWriter_ModelRGB.release();
     videoWriter_ModelLNShaded.release();
+    std::cout << ">>> Videos saved" << std::endl;
     #endif
 
     std::cout << ">> Point cloud generation begin" << std::endl;
