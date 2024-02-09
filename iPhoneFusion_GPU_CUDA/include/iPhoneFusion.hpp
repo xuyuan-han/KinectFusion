@@ -85,6 +85,12 @@ public:
             cv::VideoWriter videoWriter_Input_Depth(outputPath + "Input_Depth.avi", fourcc, output_video_fps, output_frameSize, true);
             cv::VideoWriter videoWriter_Model_RGB(outputPath + "Model_RGB.avi", fourcc, output_video_fps, output_frameSize, true);
             cv::VideoWriter videoWriter_Model_LNShaded(outputPath + "Model_LNShaded.avi", fourcc, output_video_fps, output_frameSize, true);
+
+            #ifdef SHOW_STATIC_CAMERA_MODEL
+            cv::VideoWriter videoWriter_Static_Model_RGB(outputPath + "Static_Model_RGB.avi", fourcc, output_video_fps, output_frameSize, true);
+            cv::VideoWriter videoWriter_Static_Model_LNShaded(outputPath + "Static_Model_LNShaded.avi", fourcc, output_video_fps, output_frameSize, true);
+            #endif
+
             if (!videoWriter_Input_RGB.isOpened() || !videoWriter_Input_Depth.isOpened() || !videoWriter_Model_RGB.isOpened() || !videoWriter_Model_LNShaded.isOpened()) {
                 std::cerr << "Failed to open video writer" << std::endl;
                 return;
@@ -199,6 +205,14 @@ public:
                 depth.convertTo(depthNormalized, CV_8UC1, 255.0 / (5000.f), 0);
                 cv::cvtColor(depthNormalized, depthNormalized, cv::COLOR_GRAY2BGR);
 
+                #ifdef SHOW_STATIC_CAMERA_MODEL
+                cv::Mat static_image_last_model_color_frame = pipeline.get_static_last_model_color_frame();
+                cv::Mat static_image_normalMapping = normalMapping(pipeline.get_static_last_model_normal_frame(), light, pipeline.get_static_last_model_vertex_frame());
+                cv::putText(static_image_last_model_color_frame, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 2);
+                cv::putText(static_image_normalMapping, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0), 3);
+                cv::cvtColor(static_image_normalMapping, static_image_normalMapping, cv::COLOR_GRAY2BGR);
+                #endif
+
             #ifdef SHOW_IMAGES
                 cv::imshow("Input_RGB", rgb);
                 cv::moveWindow("Input_RGB", 0, 0);
@@ -216,6 +230,14 @@ public:
                 cv::imshow("Model_LNShaded", image_normalMapping);
                 cv::moveWindow("Model_LNShaded", rgb.cols, rgb.rows + 40);
 
+                #ifdef SHOW_STATIC_CAMERA_MODEL
+                cv::imshow("Static_Model_RGB", static_image_last_model_color_frame);
+                cv::moveWindow("Static_Model_RGB", 0, rgb.rows * 2 + 80);
+
+                cv::imshow("Static_Model_LNShaded", static_image_normalMapping);
+                cv::moveWindow("Static_Model_LNShaded", rgb.cols, rgb.rows * 2 + 80);
+                #endif
+
                 // cv::imshow("SurfacePrediction Output: Normal (in camera frame)", pipeline.get_last_model_normal_frame_in_camera_coordinates());
                 // cv::moveWindow("SurfacePrediction Output: Normal (in camera frame)", rgb.cols * 2, rgb.rows + 40);
             #endif
@@ -224,6 +246,11 @@ public:
                 videoWriter_Input_Depth.write(depthNormalized);
                 videoWriter_Model_RGB.write(image_last_model_color_frame);
                 videoWriter_Model_LNShaded.write(image_normalMapping);
+
+                #ifdef SHOW_STATIC_CAMERA_MODEL
+                videoWriter_Static_Model_RGB.write(static_image_last_model_color_frame);
+                videoWriter_Static_Model_LNShaded.write(static_image_normalMapping);
+                #endif
             #endif
 
                 int key = cv::waitKey(1);
@@ -240,6 +267,12 @@ public:
             videoWriter_Input_RGB.release();
             videoWriter_Model_RGB.release();
             videoWriter_Model_LNShaded.release();
+
+            #ifdef SHOW_STATIC_CAMERA_MODEL
+            videoWriter_Static_Model_RGB.release();
+            videoWriter_Static_Model_LNShaded.release();
+            #endif
+            
             std::cout << ">>> Videos saved" << std::endl;
             #endif
 

@@ -25,6 +25,12 @@ public:
     cv::Mat get_last_model_vertex_frame() const;
     cv::Mat get_last_model_normal_frame_in_camera_coordinates() const;
     void save_tsdf_color_volume_point_cloud() const;
+
+    #ifdef SHOW_STATIC_CAMERA_MODEL
+    cv::Mat get_static_last_model_color_frame() const;
+    cv::Mat get_static_last_model_normal_frame() const;
+    cv::Mat get_static_last_model_vertex_frame() const;
+    #endif
     
 private:
     CameraParameters camera_parameters;
@@ -37,6 +43,14 @@ private:
     cv::Mat last_model_color_frame;
     cv::Mat last_model_normal_frame;
     cv::Mat last_model_vertex_frame;
+
+    #ifdef SHOW_STATIC_CAMERA_MODEL
+    GPU::ModelData static_model_data_GPU;
+    cv::Mat static_last_model_color_frame;
+    cv::Mat static_last_model_normal_frame;
+    cv::Mat static_last_model_vertex_frame;
+    #endif
+    
     size_t frame_id { 0 };
 };
 
