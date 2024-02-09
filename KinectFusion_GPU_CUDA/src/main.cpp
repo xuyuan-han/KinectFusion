@@ -11,7 +11,21 @@ int main(int argc, char **argv)
     CameraParameters cameraparameters;
     GlobalConfiguration configuration;
 
+    // ------------------------------------------------------------------
+    // Using rgbd_dataset_freiburg1_xyz and set the camera parameters as default    
     std::string datasetname = std::string("rgbd_dataset_freiburg1_xyz");
+    // ------------------------------------------------------------------
+
+    // ------------------------------------------------------------------
+    // Using rgbd_dataset_freiburg2_xyz and change the camera parameters as follows
+    // std::string datasetname = std::string("rgbd_dataset_freiburg2_xyz");
+    // configuration.voxel_scale = 10.0f;
+    // configuration.volume_size_int3 = {250, 160, 180};
+    // configuration.init_gamma = -30.0f;
+    // configuration.init_depth_z = 1300.0f;
+    // configuration.init_depth_x = -20.0f;
+    // ------------------------------------------------------------------
+
     std::string filenameIn = std::string("../../Data/") + datasetname + std::string("/");
 
     #ifdef OUTPUT_VIDEO
