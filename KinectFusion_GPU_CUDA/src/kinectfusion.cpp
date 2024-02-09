@@ -8,6 +8,9 @@ Pipeline::Pipeline(const CameraParameters _camera_parameters,
         outputPath(_outputPath),
         volume_data_GPU(_configuration.volume_size_int3, _configuration.voxel_scale),
         model_data_GPU(_configuration.num_levels, _camera_parameters),
+        #ifdef SHOW_STATIC_CAMERA_MODEL
+        static_model_data_GPU(_configuration.num_levels, _camera_parameters),
+        #endif
         current_pose{},
         poses{},
         frame_id{0}
@@ -138,6 +141,24 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
     model_data_GPU.normal_pyramid[0].download(last_model_normal_frame);
     model_data_GPU.vertex_pyramid[0].download(last_model_vertex_frame);
 
+    #ifdef SHOW_STATIC_CAMERA_MODEL
+    Eigen::Matrix4f static_camera_pose = poses[0];
+    static_camera_pose(0, 3) -= 0;
+    static_camera_pose(1, 3) -= 1000;
+    static_camera_pose(2, 3) -= 1000;
+    GPU::surface_prediction(
+        volume_data_GPU,
+        static_model_data_GPU.vertex_pyramid[0],
+        static_model_data_GPU.normal_pyramid[0],
+        static_model_data_GPU.color_pyramid[0],
+        camera_parameters,
+        configuration.truncation_distance,
+        static_camera_pose);
+    static_model_data_GPU.color_pyramid[0].download(static_last_model_color_frame);
+    static_model_data_GPU.normal_pyramid[0].download(static_last_model_normal_frame);
+    static_model_data_GPU.vertex_pyramid[0].download(static_last_model_vertex_frame);
+    #endif
+
     ++frame_id;
     return true;
 }
@@ -168,6 +189,21 @@ cv::Mat Pipeline::get_last_model_normal_frame_in_camera_coordinates() const
 {
     return rotate_map_multi_threads(last_model_normal_frame, current_pose.block(0, 0, 3, 3).inverse());
 }
+
+#ifdef SHOW_STATIC_CAMERA_MODEL
+cv::Mat Pipeline::get_static_last_model_color_frame() const
+{
+    return static_last_model_color_frame;
+}
+cv::Mat Pipeline::get_static_last_model_normal_frame() const
+{
+    return static_last_model_normal_frame;
+}
+cv::Mat Pipeline::get_static_last_model_vertex_frame() const
+{
+    return static_last_model_vertex_frame;
+}
+#endif
 
 void Pipeline::save_tsdf_color_volume_point_cloud() const
 {   
