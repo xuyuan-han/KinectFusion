@@ -688,16 +688,17 @@ void createAndSaveClassPointCloudVolumeData_multi_threads(const cv::Mat& classMa
     plyFile << "property float x\nproperty float y\nproperty float z\nproperty uchar red\nproperty uchar green\nproperty uchar blue\n";
     plyFile << "end_header\n";
 
-    for (const auto& tempFilename : tempFilenames) {
-        std::ifstream tempFile(tempFilename);
-        if (tempFile.good()) {
-            plyFile << tempFile.rdbuf();
-            tempFile.close();
-            std::remove(tempFilename.c_str());
+    for (size_t i = 0; i < tempFilenames.size(); ++i) {
+        if (numVerticesVec[i] > 0){
+            std::ifstream tempFile(tempFilenames[i]);
+            if (tempFile.good()) {
+                plyFile << tempFile.rdbuf();
+                tempFile.close();
+            } else {
+                std::cerr << "Error reading temporary file: " << tempFilenames[i] << std::endl;
+            }
         }
-        else {
-            std::cerr << "Error reading temporary file: " << tempFilename << std::endl;
-        }
+        std::remove(tempFilenames[i].c_str());
     }
 
     for (const auto& camera_pose_tempFilename : camera_pose_tempFilenames) {
