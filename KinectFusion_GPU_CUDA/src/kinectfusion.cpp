@@ -143,9 +143,17 @@ bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv
 
     #ifdef SHOW_STATIC_CAMERA_MODEL
     Eigen::Matrix4f static_camera_pose = poses[0];
-    static_camera_pose(0, 3) -= 0;
-    static_camera_pose(1, 3) -= 1000;
-    static_camera_pose(2, 3) -= 1000;
+    if (outputPath.find("rgbd_dataset_freiburg2_xyz") != std::string::npos){
+        static_camera_pose(0, 3) -= 0;
+        static_camera_pose(1, 3) -= 500;
+        static_camera_pose(2, 3) -= 1000;
+    }
+    else
+    {
+        static_camera_pose(0, 3) -= 0;
+        static_camera_pose(1, 3) -= 1000;
+        static_camera_pose(2, 3) -= 1000;
+    }
     GPU::surface_prediction(
         volume_data_GPU,
         static_model_data_GPU.vertex_pyramid[0],
