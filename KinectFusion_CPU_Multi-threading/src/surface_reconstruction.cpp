@@ -95,6 +95,7 @@ void Surface_Reconstruction::reconstructionProcessVolumeSlice(VolumeData* vol, c
 								 double r = ((double)rand() / (RAND_MAX)); // Random number between 0 and 1
 								 if (r < (double)old_class_weight / (old_class_weight + weight)){
 									 newClass = oldClass;
+									 weight = 0;
 									 
 								 }else{
 									vol->class_weight.at<uchar>(r, c) = 0;
