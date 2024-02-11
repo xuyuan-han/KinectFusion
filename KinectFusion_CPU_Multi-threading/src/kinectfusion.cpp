@@ -865,6 +865,7 @@ cv::Vec3b getColorForClass(uchar classIndex) {
 	if (classIndexInt <= 0 || classIndexInt >= ade20k_palette.size()) {
 		return cv::Vec3b(0, 0, 0);
 	}
+
 	return cv::Vec3b(ade20k_palette[classIndexInt][0], ade20k_palette[classIndexInt][1], ade20k_palette[classIndexInt][2]);
 
 }

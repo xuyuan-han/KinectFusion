@@ -86,17 +86,23 @@ void Surface_Reconstruction::reconstructionProcessVolumeSlice(VolumeData* vol, c
 							vol->color_volume.at<cv::Vec3b>(r, c) = color;
 
 							#ifdef USE_CLASSES
+							if (sdf <= trancutionDistance / 2 && sdf >= -trancutionDistance / 2) {
+								uchar old_class_weight = vol->class_weight.at<uchar>(r, c);
 							uchar newClass = class_map.at<uchar>(pixel[1], pixel[0]);
+							 if (newClass != oldClass)
+							 {
+								 // Randomly choose one of the classes with probability proportional to the weight
+								 double r = ((double)rand() / (RAND_MAX)); // Random number between 0 and 1
+								 if (r < (double)old_class_weight / (old_class_weight + weight)){
+									 newClass = oldClass;
+									 
+								 }else{
+									vol->class_weight.at<uchar>(r, c) = 0;
+								 }
+							 }
+							 vol->class_volume.at<uchar>(r, c) = newClass;
+							 vol->class_weight.at<uchar>(r, c) = vol->class_weight.at<uchar>(r, c) + weight;
 
-							if (oldClass == 0 && newClass!=0){
-								vol->class_volume.at<uchar>(r, c) = newClass;
-							}else if (newClass != 0 && sdf <= trancutionDistance / 2 && sdf >= -trancutionDistance / 2 && newClass != oldClass)
-							{
-									//Randomly choose one of the classes with probability proportional to the weight
-								//double r = ((double)rand() / (RAND_MAX)); // Random number between 0 and 1
-								//if (r < (double)oldWeight / (oldWeight + weight))
-									//newClass = oldClass;
-								vol->class_volume.at<uchar>(r, c) = newClass;
 							}
 							
 							// std::cout << "oldClass: " << oldClass << std::endl;

@@ -14,7 +14,7 @@
 
 #define USE_CPU_MULTI_THREADING
 // #define PRINT_MODULE_COMP_TIME
-//#define USE_CLASSES
+#define USE_CLASSES
 #define SHOW_STATIC_CAMERA_MODEL // render the model of a static camera
 
 #define DIVSHORTMAX 0.0000305185f 
@@ -637,6 +637,8 @@ struct VolumeData {
     cv::Mat color_volume; //uchar4
 	// Class data
 	cv::Mat class_volume; //uint
+	// Class weights
+	cv::Mat class_weight; //uint
     Eigen::Vector3i volume_size;
     float voxel_scale;
 
@@ -645,12 +647,15 @@ struct VolumeData {
             tsdf_volume(cv::Mat(_volume_size[1] * _volume_size[2], _volume_size[0], CV_16SC2)),
             color_volume(cv::Mat(_volume_size[1] * _volume_size[2], _volume_size[0], CV_8UC3)),
 			class_volume(cv::Mat(_volume_size[1] * _volume_size[2], _volume_size[0], CV_8UC1)),
+			class_weight(cv::Mat(_volume_size[1] * _volume_size[2], _volume_size[0], CV_8UC1)),
             volume_size(_volume_size), voxel_scale(_voxel_scale)
     {
         // initialize the volume
         tsdf_volume.setTo(0);
         color_volume.setTo(0);
-		class_volume.setTo(0);
+		class_volume.setTo(160); // 160 is the default class id which is the background
+		class_weight.setTo(0);
+
     }
 
 	cv::Mat getTSDFVolume() {
