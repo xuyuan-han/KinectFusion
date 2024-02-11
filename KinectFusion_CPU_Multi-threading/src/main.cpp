@@ -129,9 +129,11 @@ int main(int argc, char **argv)
         // L.N Shaded rendering
         cv::Mat image_normalMapping = normalMapping(pipeline.get_last_model_normal_frame(), light, pipeline.get_last_model_vertex_frame());
 
+        if (fps > 0.0){
         std::string fps_text = "FPS: " + std::to_string(int(fps));
         cv::putText(image_last_model_color_frame, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 2);
         cv::putText(image_normalMapping, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0), 3);
+        }
         cv::cvtColor(image_normalMapping, image_normalMapping, cv::COLOR_GRAY2BGR);
 
         cv::Mat depthNormalized;
@@ -141,8 +143,6 @@ int main(int argc, char **argv)
         #ifdef SHOW_STATIC_CAMERA_MODEL
         cv::Mat static_image_last_model_color_frame = pipeline.get_static_last_model_color_frame();
         cv::Mat static_image_normalMapping = normalMapping(pipeline.get_static_last_model_normal_frame(), light, pipeline.get_static_last_model_vertex_frame());
-        cv::putText(static_image_last_model_color_frame, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 2);
-        cv::putText(static_image_normalMapping, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0), 3);
         cv::cvtColor(static_image_normalMapping, static_image_normalMapping, cv::COLOR_GRAY2BGR);
         #endif
 
