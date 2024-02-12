@@ -24,6 +24,39 @@ The CPU version is implemented using multi-threading to speed up the computation
 The GPU version is implemented using CUDA to speed up the computation and enable real-time operation.
 The iPhone version is implemented using the iPhone LiDAR sensor with CUDA to reconstruct the room in real time.
 
+
+**To Use the Segmentation:**
+
+**Implementation Status:**
+Segmentation functionality is currently available only in the C++ multithreaded version. We plan to integrate it into the CUDA and iPhone versions in the near future.
+
+**Data Structure:**
+- Ensure that your data folder includes a `segmentation` directory containing segmentation maps for each frame.
+- Additionally, include a segmentation text file structured similarly to the RGB text file of the TUM RGB-D dataset. Each line should consist of a timestamp and the corresponding segmentation path.
+
+**Activation:**
+To activate segmentation, simply uncomment the line `#define USE_CLASSES` in the `data_types.h` file.
+
+**Visual Representation of Data Structure for segmentation:**
+```bash
+Data Folder
+│
+├── segmentation
+│ ├── frame_1_segmentation_map.png
+│ ├── frame_2_segmentation_map.png
+│ ├── ...
+│ ├── frame_n_segmentation_map.png
+│ └── segmentation.txt
+│
+└── segmentation.txt
+```
+
+In this structure:
+- The `segmentation` directory contains all segmentation map images.
+- Each frame's segmentation map is stored as a PNG image (`frame_1_segmentation_map.png`, `frame_2_segmentation_map.png`, ..., `frame_n_segmentation_map.png`) within the `segmentation` directory.
+- The `segmentation.txt` file lists timestamps and the corresponding paths to segmentation maps, similar to the RGB text file of the TUM RGB-D dataset.
+
+
 Please refer to the README in each folder for the detailed instructions on how to run the code:
 
 [KinectFusion_CPU_Multi-threading README](./KinectFusion_CPU_Multi-threading/README.md)
