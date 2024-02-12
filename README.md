@@ -4,6 +4,8 @@ In this project, we aim to reimplement KinectFusion, a well-known RGB-D dense re
 
 We detail our efforts in reimplementing KinectFusion, exploring both multi-threaded CPU and CUDA-based GPU approaches to achieve efficient real-time performance. Our implementation extends the conventional KinectFusion pipeline by incorporating modern advancements such as high-resolution LiDAR data from iPhone sensors and integrating semantic information from 2D segmentation maps to enhance the reconstruction process. Through experiments conducted on the TUM RGB-D dataset and real-world data captured by an iPhone LiDAR sensor, we demonstrate the efficacy of our approach in producing detailed and accurate 3D reconstructions. Our results highlight the significant speedup achieved by the CUDA implementation, achieving real-time reconstruction at 30 fps, which is 14 times faster than its multi-threaded CPU counterpart. This work not only proves that consumer-grade sensors can effectively reconstruct 3D scenes but also highlights how integrating semantic segmentation can enhance reconstruction quality.
 
+Check out our [final report](./Final_Report.pdf) for more details.
+
 ## Requirements
 
 Please check the README in each folder for the detailed requirements.
