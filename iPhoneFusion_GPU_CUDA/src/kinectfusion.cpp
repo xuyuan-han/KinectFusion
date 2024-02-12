@@ -51,7 +51,7 @@ Pipeline::Pipeline(const CameraParameters _camera_parameters,
 bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map, CameraParameters _camera_parameters)
 {
     camera_parameters = _camera_parameters;
-    CPU::FrameData frame_data(configuration.num_levels);
+    GPU::FrameData frame_data(configuration.num_levels);
     
     #ifdef PRINT_MODULE_COMP_TIME
     auto start = std::chrono::high_resolution_clock::now();

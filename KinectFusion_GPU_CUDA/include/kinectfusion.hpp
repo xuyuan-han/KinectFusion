@@ -1,11 +1,10 @@
 #pragma once
-#include "data_types_CPU.hpp"
 #include "VirtualSensor.hpp"
 #include "pose_estimation.hpp"
 #include "surface_measurement.hpp"
 #include "surface_prediction.hpp"
 #include "surface_reconstruction.hpp"
-// #include "data_types_GPU.hpp"
+#include "data_types_GPU.hpp"
 // #include <opencv2/viz/viz3d.hpp>
 
 class Pipeline {
