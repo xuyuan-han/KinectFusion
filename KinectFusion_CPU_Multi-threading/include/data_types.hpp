@@ -14,7 +14,7 @@
 
 #define USE_CPU_MULTI_THREADING
 // #define PRINT_MODULE_COMP_TIME
-#define USE_CLASSES
+// #define USE_CLASSES
 #define SHOW_STATIC_CAMERA_MODEL // render the model of a static camera
 
 #define DIVSHORTMAX 0.0000305185f 

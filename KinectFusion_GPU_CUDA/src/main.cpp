@@ -112,7 +112,7 @@ int main(int argc, char **argv)
         double time_diff = (current_time - last_time) / cv::getTickFrequency();
 
         // update FPS every 0.2 second
-        if (time_diff >= 0.2) {
+        if (time_diff >= 1.0f) {
             fps = frame_count_FPS / time_diff;
             frame_count_FPS = 0;
             last_time = current_time;

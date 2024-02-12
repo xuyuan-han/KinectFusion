@@ -28,7 +28,7 @@
 
 // #define PRINT_MODULE_COMP_TIME
 // #define USE_CLASSES
-#define SHOW_STATIC_CAMERA_MODEL // render the model of a static camera
+// #define SHOW_STATIC_CAMERA_MODEL // render the model of a static camera
 
 #define DIVSHORTMAX 0.0000305185f 
 #define SHORTMAX    32767               // SHRT_MAX;
@@ -46,7 +46,7 @@ struct GlobalConfiguration {
 	// Eigen::Vector3i volume_size { Eigen::Vector3i(512, 512, 512) }; voxel_scale = 2 mm
 	// Eigen::Vector3i volume_size { Eigen::Vector3i(800, 400, 900) }; voxel_scale = 4 mm
 	// Eigen::Vector3i volume_size { Eigen::Vector3i(700, 400, 800) }; // voxel_scale = 5 mm
-    int3 volume_size_int3 { make_int3(800, 600, 1000) };
+    int3 volume_size_int3 { make_int3(800, 500, 1000) };
 
 	// The amount of mm one single voxel will represent in each dimension. Controls the resolution of the volume.
 	// float voxel_scale { 2.f };
@@ -59,15 +59,15 @@ struct GlobalConfiguration {
 	float bfilter_spatial_sigma { 1.f };
 
 	// The initial distance of the camera from the volume center along the x-axis (in mm)
-	float init_depth_x { 400.f };
+	float init_depth_x { -700.f };
     // The initial distance of the camera from the volume center along the y-axis (in mm)
-	float init_depth_y { 0.f };
+	float init_depth_y { 500.f };
     // The initial distance of the camera from the volume center along the z-axis (in mm)
-	float init_depth_z { 1800.f };
+	float init_depth_z { 900.f };
 
     // The initial angle of the camera around the z,y,x-axis (in degrees)
-    float init_alpha { 0.f }; // The initial angle of the camera around the z-axis (in degrees)
-    float init_beta { -90.f }; // The initial angle of the camera around the y-axis (in degrees)
+    float init_alpha { 35.f }; // The initial angle of the camera around the z-axis (in degrees)
+    float init_beta { 98.f }; // The initial angle of the camera around the y-axis (in degrees)
     float init_gamma { 0.f }; // The initial angle of the camera around the x-axis (in degrees)
 
 	// Downloads the model frame for each frame (for visualization purposes). If this is set to true, you can

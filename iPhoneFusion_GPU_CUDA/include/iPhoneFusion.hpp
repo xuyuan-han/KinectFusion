@@ -67,6 +67,20 @@ public:
             CameraParameters cameraparameters;
             GlobalConfiguration configuration;
 
+            // cameraparameters.focal_x=680.0f;
+            // cameraparameters.focal_y=680.0f;
+            // cameraparameters.principal_x=360.5f;
+            // cameraparameters.principal_y=480.5f;
+            // cameraparameters.image_width=720;
+            // cameraparameters.image_height=960;
+
+            cameraparameters.focal_x=stream.GetCurrentIntrinsicMatrix()[0];
+            cameraparameters.focal_y=stream.GetCurrentIntrinsicMatrix()[1];
+            cameraparameters.principal_x=stream.GetCurrentIntrinsicMatrix()[2];
+            cameraparameters.principal_y=stream.GetCurrentIntrinsicMatrix()[3];
+            cameraparameters.image_width=720;
+            cameraparameters.image_height=960;
+
             #ifdef OUTPUT_VIDEO
             std::string outputPath = "../output/iPhoneFusion_" + getCurrentTimestamp() + "/";
             if (!std::filesystem::exists(outputPath)) {
@@ -80,7 +94,7 @@ public:
             }
             int fourcc = cv::VideoWriter::fourcc('M', 'J', 'P', 'G');
             double output_video_fps = 30.0;
-            cv::Size output_frameSize(640, 480);
+            cv::Size output_frameSize(cameraparameters.image_width, cameraparameters.image_height);
             cv::VideoWriter videoWriter_Input_RGB(outputPath + "Input_RGB.avi", fourcc, output_video_fps, output_frameSize, true);
             cv::VideoWriter videoWriter_Input_Depth(outputPath + "Input_Depth.avi", fourcc, output_video_fps, output_frameSize, true);
             cv::VideoWriter videoWriter_Model_RGB(outputPath + "Model_RGB.avi", fourcc, output_video_fps, output_frameSize, true);
@@ -96,20 +110,6 @@ public:
                 return;
             }
             #endif
-
-            // cameraparameters.focal_x=680.0f;
-            // cameraparameters.focal_y=680.0f;
-            // cameraparameters.principal_x=360.5f;
-            // cameraparameters.principal_y=480.5f;
-            // cameraparameters.image_width=720;
-            // cameraparameters.image_height=960;
-
-            cameraparameters.focal_x=stream.GetCurrentIntrinsicMatrix()[0];
-            cameraparameters.focal_y=stream.GetCurrentIntrinsicMatrix()[1];
-            cameraparameters.principal_x=stream.GetCurrentIntrinsicMatrix()[2];
-            cameraparameters.principal_y=stream.GetCurrentIntrinsicMatrix()[3];
-            cameraparameters.image_width=720;
-            cameraparameters.image_height=960;
 
             Pipeline pipeline {cameraparameters, configuration, outputPath};
 
@@ -258,7 +258,7 @@ public:
                     break;
                 }
             }
-            std::cout << "Finished - Total frame processed: " << frameCnt << std::endl;
+            // std::cout << "Finished - Total frame processed: " << frameCnt << std::endl;
             std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
     
             #ifdef OUTPUT_VIDEO
