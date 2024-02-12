@@ -82,6 +82,7 @@ int main(int argc, char **argv)
     double last_time = cv::getTickCount();
     int frame_count_FPS = 0;
     double fps = 0.0;
+    auto pipeline_start = std::chrono::high_resolution_clock::now(); // start time measurement
 
     Pipeline pipeline {cameraparameters, configuration, outputPath};
     while(sensor.processNextFrame()){
@@ -194,6 +195,10 @@ int main(int argc, char **argv)
     }
     std::cout << "Finished - Total frame processed: " << sensor.getCurrentFrameCnt() << std::endl;
     std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
+    auto pipeline_end = std::chrono::high_resolution_clock::now(); // end time measurement
+    std::chrono::duration<double, std::milli> elapsed_pipeline = pipeline_end - pipeline_start; // elapsed time in milliseconds
+    std::cout << "Total pipeline time: " << elapsed_pipeline.count() << " ms\n";
+    std::cout << "time per frame: " << elapsed_pipeline.count() / sensor.getCurrentFrameCnt() << " ms\n";
 
     #ifdef OUTPUT_VIDEO
     std::cout << ">> Saving videos..." << std::endl;
